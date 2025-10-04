@@ -15,7 +15,7 @@ function Navbar() {
               <a className="hover:text-black dark:hover:text-white" href="#cta">Get started</a>
             </nav>
             <div className="flex items-center gap-2">
-              <a href="#cta" className="hidden sm:inline-flex rounded-full bg-[--color-pantrii-600] text-white px-4 py-2 text-sm font-medium hover:opacity-95">Join the waitlist</a>
+              <a href="#cta" className="hidden sm:inline-flex rounded-full bg-pantrii-600 text-white px-4 py-2 text-sm font-medium hover:opacity-95">Join the waitlist</a>
             </div>
           </div>
         </div>
@@ -37,7 +37,7 @@ function Hero() {
               Pantrii brings meal planning, recipes, grocery lists, and pantry tracking together with a modern kitchen feel.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <a href="#cta" className="inline-flex items-center justify-center rounded-full bg-[--color-pantrii-600] text-white px-5 py-3 text-sm font-semibold shadow-sm hover:opacity-95">
+              <a href="#cta" className="inline-flex items-center justify-center rounded-full bg-pantrii-600 text-white px-5 py-3 text-sm font-semibold shadow-sm hover:opacity-95">
                 Start organizing
               </a>
               <a href="#features" className="inline-flex items-center justify-center rounded-full border border-stone-300/80 dark:border-white/15 px-5 py-3 text-sm font-semibold text-stone-800 dark:text-white hover:bg-stone-50/60 dark:hover:bg-white/5">
@@ -57,25 +57,25 @@ function Hero() {
               <div className="absolute inset-0 grid grid-cols-3 gap-2 p-4">
                 <div className="rounded-xl bg-white/70 dark:bg-white/5 border border-black/5 dark:border-white/10 p-4">
                   <p className="text-xs font-medium text-stone-500 dark:text-neutral-300">This Week</p>
-                  <div className="mt-2 h-2 w-20 rounded bg-[--color-pantrii-200]"></div>
-                  <div className="mt-2 h-2 w-24 rounded bg-[--color-pantrii-300]"></div>
-                  <div className="mt-2 h-2 w-16 rounded bg-[--color-pantrii-100]"></div>
+                  <div className="mt-2 h-2 w-20 rounded bg-pantrii-200"></div>
+                  <div className="mt-2 h-2 w-24 rounded bg-pantrii-300"></div>
+                  <div className="mt-2 h-2 w-16 rounded bg-pantrii-100"></div>
                 </div>
                 <div className="rounded-xl bg-white/70 dark:bg-white/5 border border-black/5 dark:border-white/10 p-4">
                   <p className="text-xs font-medium text-stone-500 dark:text-neutral-300">Grocery</p>
                   <div className="mt-2 flex flex-col gap-2">
-                    <div className="h-2 w-24 rounded bg-[--color-pantrii-200]"></div>
-                    <div className="h-2 w-20 rounded bg-[--color-pantrii-300]"></div>
-                    <div className="h-2 w-16 rounded bg-[--color-pantrii-100]"></div>
+                    <div className="h-2 w-24 rounded bg-pantrii-200"></div>
+                    <div className="h-2 w-20 rounded bg-pantrii-300"></div>
+                    <div className="h-2 w-16 rounded bg-pantrii-100"></div>
                   </div>
                 </div>
                 <div className="rounded-xl bg-white/70 dark:bg-white/5 border border-black/5 dark:border-white/10 p-4">
                   <p className="text-xs font-medium text-stone-500 dark:text-neutral-300">Pantry</p>
                   <div className="mt-2 grid grid-cols-2 gap-2">
-                    <div className="h-6 rounded bg-[--color-pantrii-100]"></div>
-                    <div className="h-6 rounded bg-[--color-pantrii-200]"></div>
-                    <div className="h-6 rounded bg-[--color-pantrii-300]"></div>
-                    <div className="h-6 rounded bg-[--color-pantrii-200]"></div>
+                    <div className="h-6 rounded bg-pantrii-100"></div>
+                    <div className="h-6 rounded bg-pantrii-200"></div>
+                    <div className="h-6 rounded bg-pantrii-300"></div>
+                    <div className="h-6 rounded bg-pantrii-200"></div>
                   </div>
                 </div>
               </div>
@@ -155,7 +155,7 @@ function HowItWorks() {
         <ol className="mt-12 grid gap-6 sm:grid-cols-3">
           {steps.map((step, idx) => (
             <li key={step.title} className="rounded-2xl border border-black/5 dark:border-white/10 p-6 bg-white dark:bg-white/5">
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[--color-pantrii-600] text-white font-semibold">
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-pantrii-600 text-white font-semibold">
                 {idx + 1}
               </span>
               <h3 className="mt-4 text-lg font-semibold text-stone-900 dark:text-white">
@@ -174,7 +174,7 @@ function CTA() {
   return (
     <section id="cta" className="py-20">
       <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-        <div className="relative overflow-hidden rounded-3xl border border-black/5 dark:border-white/10 p-10 sm:p-12 bg-gradient-to-r from-[--color-pantrii-600] to-[--color-pantrii-500]">
+        <div className="relative overflow-hidden rounded-3xl border border-black/5 dark:border-white/10 p-10 sm:p-12 bg-gradient-to-r from-pantrii-600 to-pantrii-500">
           <div className="relative z-10">
             <h3 className="text-2xl sm:text-3xl font-bold text-white">Be first to try Pantrii</h3>
             <p className="mt-2 text-white/90">Join the waitlist and get early access.</p>
@@ -231,7 +231,3 @@ export default function Home() {
     </div>
   );
 }
-<<<<<<< HEAD
-
-=======
->>>>>>> da47529ca01d20bb06fb565eef273a7d414a2e18
