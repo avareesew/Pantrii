@@ -39,7 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-<<<<<<< HEAD
 
-=======
->>>>>>> da47529ca01d20bb06fb565eef273a7d414a2e18
+# uploads
+/uploads
+
+# Google Cloud service account keys (NEVER commit these!)
+/keys/*.json
+/keys/*.pem

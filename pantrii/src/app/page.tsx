@@ -12,6 +12,7 @@ function Navbar() {
             <nav className="hidden md:flex items-center gap-6 text-sm text-stone-600 dark:text-neutral-300">
               <a className="hover:text-black dark:hover:text-white" href="#features">Features</a>
               <a className="hover:text-black dark:hover:text-white" href="#how">How it works</a>
+              <a className="hover:text-black dark:hover:text-white" href="/scan">Scan Recipes</a>
               <a className="hover:text-black dark:hover:text-white" href="#cta">Get started</a>
             </nav>
             <div className="flex items-center gap-2">
