@@ -46,3 +46,5 @@ next-env.d.ts
 # Google Cloud service account keys (NEVER commit these!)
 /keys/*.json
 /keys/*.pem
+
+/src/generated/prisma

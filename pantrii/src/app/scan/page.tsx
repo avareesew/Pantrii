@@ -163,38 +163,10 @@ export default function ScanPage() {
           </div>
         </div>
 
-        {/* Upload Result */}
-        {uploadResult && (
-          <div className="mt-8 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-            <h3 className="font-semibold text-green-800 dark:text-green-200 mb-2">
-              Upload Successful
-            </h3>
-            <p className="text-sm text-green-700 dark:text-green-300">
-              File: {uploadResult.originalName} ({Math.round(uploadResult.size / 1024)}KB)
-            </p>
-          </div>
-        )}
 
         {/* Scan Results */}
         {scanResult && (
           <div className="mt-8 space-y-6">
-            {/* Extracted Text - Show this prominently */}
-            <div className="bg-white dark:bg-white/5 rounded-2xl border border-black/5 dark:border-white/10 p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-stone-900 dark:text-white mb-4">
-                ✅ Extracted Text ({scanResult.characterCount} characters)
-              </h3>
-              <div className="bg-stone-50 dark:bg-stone-900/20 rounded-lg p-4 max-h-96 overflow-y-auto">
-                <pre className="text-sm text-stone-700 dark:text-neutral-300 whitespace-pre-wrap font-mono">
-                  {scanResult.extractedText}
-                </pre>
-              </div>
-              <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                <p className="text-sm text-green-800 dark:text-green-200">
-                  <strong>🎉 Success!</strong> Text extracted using Google Cloud Document AI (for PDFs) or Vision API (for images). 
-                  The complete text is shown above - no truncation!
-                </p>
-              </div>
-            </div>
 
             {/* Structured Data - Only show if we have parsed data */}
             {scanResult.recipeData && scanResult.recipeData.title && (
@@ -215,7 +187,6 @@ export default function ScanPage() {
                     {scanResult.recipeData.serves && (
                       <span>Serves: {scanResult.recipeData.serves}</span>
                     )}
-                    <span>Confidence: {Math.round(scanResult.recipeData.confidence * 100)}%</span>
                   </div>
                 </div>
 
@@ -255,24 +226,6 @@ export default function ScanPage() {
                   </div>
                 )}
 
-                {/* Nutrition */}
-                {scanResult.recipeData.nutrition && Object.keys(scanResult.recipeData.nutrition).length > 0 && (
-                  <div className="bg-white dark:bg-white/5 rounded-2xl border border-black/5 dark:border-white/10 p-6 shadow-sm">
-                    <h3 className="text-lg font-semibold text-stone-900 dark:text-white mb-4">
-                      Nutrition (per serving)
-                    </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {Object.entries(scanResult.recipeData.nutrition).map(([key, value]) => (
-                        <div key={key} className="text-center p-3 bg-stone-50 dark:bg-stone-900/20 rounded-lg">
-                          <div className="text-2xl font-bold text-pantrii-600">{value}</div>
-                          <div className="text-sm text-stone-600 dark:text-neutral-400 capitalize">
-                            {key.replace(/([A-Z])/g, ' $1').trim()}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </>
             )}
 
@@ -283,16 +236,6 @@ export default function ScanPage() {
                 className="px-6 py-2 bg-pantrii-600 text-white rounded-lg hover:bg-pantrii-700 transition-colors"
               >
                 Scan Another Document
-              </button>
-              
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(scanResult.extractedText);
-                  alert('Text copied to clipboard!');
-                }}
-                className="px-6 py-2 border border-stone-300 dark:border-white/20 text-stone-700 dark:text-neutral-300 rounded-lg hover:bg-stone-50 dark:hover:bg-white/5 transition-colors"
-              >
-                Copy Text
               </button>
             </div>
           </div>
