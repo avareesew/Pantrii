@@ -8,41 +8,44 @@ export function Navbar() {
   const { data: session } = useSession();
   
   return (
-    <header className="fixed top-0 inset-x-0 z-50">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mt-4 rounded-xl frosted border border-black/5 dark:border-white/10 shadow-sm">
-          <div className="flex h-14 items-center justify-between px-4">
-            <div className="flex items-center gap-3">
-              <Link href="/">
-                <Image src="/logo-pantrii.svg" alt="Pantrii" width={120} height={28} />
+    <header className="bg-white shadow-sm border-b">
+      <div className="max-w-6xl mx-auto px-4">
+        <div className="flex h-16 items-center justify-between">
+          <Link href="/" className="flex items-center">
+            <Image src="/logo-pantrii.svg" alt="Pantrii" width={120} height={28} />
+          </Link>
+          
+          <div className="flex items-center gap-4">
+            {session ? (
+              <Link 
+                href="/dashboard" 
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+              >
+                Dashboard
               </Link>
-            </div>
-            <nav className="hidden md:flex items-center gap-6 text-sm text-stone-600 dark:text-neutral-300">
-              <a className="hover:text-black dark:hover:text-white" href="#features">Features</a>
-              <a className="hover:text-black dark:hover:text-white" href="#how">How it works</a>
-              <a className="hover:text-black dark:hover:text-white" href="/scan">Scan Recipes</a>
-              <a className="hover:text-black dark:hover:text-white" href="#cta">Get started</a>
-            </nav>
-            <div className="flex items-center gap-2">
-              {session ? (
-                <Link href="/dashboard" className="inline-flex rounded-full bg-pantrii-600 text-white px-4 py-2 text-sm font-medium hover:opacity-95">
-                  Dashboard
+            ) : (
+              <div className="flex items-center gap-2">
+                <Link 
+                  href="/login" 
+                  className="text-gray-600 hover:text-gray-900 px-3 py-2"
+                >
+                  Sign In
                 </Link>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Link href="/login" className="text-stone-600 dark:text-neutral-300 hover:text-black dark:hover:text-white px-3 py-2 text-sm font-medium">
-                    Sign in
-                  </Link>
-                  <Link href="/register" className="inline-flex rounded-full bg-pantrii-600 text-white px-4 py-2 text-sm font-medium hover:opacity-95">
-                    Get started
-                  </Link>
-                </div>
-              )}
-            </div>
+                <Link 
+                  href="/register" 
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+                >
+                  Get Started
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </div>
     </header>
   );
 }
+
+
+
 

@@ -61,20 +61,20 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[--color-cream] dark:bg-black flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <Link href="/" className="inline-block">
             <Image src="/logo-pantrii.svg" alt="Pantrii" width={120} height={28} />
           </Link>
-          <h2 className="mt-6 text-3xl font-bold text-stone-900 dark:text-white">
+          <h2 className="mt-6 text-3xl font-bold text-gray-900">
             Create your account
           </h2>
-          <p className="mt-2 text-sm text-stone-600 dark:text-neutral-300">
+          <p className="mt-2 text-sm text-gray-600">
             Or{" "}
             <Link
               href="/login"
-              className="font-medium text-pantrii-600 hover:text-pantrii-500"
+              className="font-medium text-green-600 hover:text-green-500"
             >
               sign in to your existing account
             </Link>
@@ -82,10 +82,10 @@ export default function RegisterPage() {
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-2xl border border-black/5 dark:border-white/10 bg-white dark:bg-white/5 p-6 shadow-sm">
+          <div className="bg-white p-6 rounded-lg shadow">
             <div className="space-y-4">
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-stone-700 dark:text-neutral-300">
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
                   Full name
                 </label>
                 <input
@@ -96,13 +96,13 @@ export default function RegisterPage() {
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="mt-1 block w-full px-3 py-2 border border-stone-300 dark:border-white/20 rounded-lg shadow-sm placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pantrii-500 focus:border-pantrii-500 dark:bg-white/10 dark:text-white"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                   placeholder="Your full name"
                 />
               </div>
 
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-stone-700 dark:text-neutral-300">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                   Email address
                 </label>
                 <input
@@ -113,13 +113,13 @@ export default function RegisterPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="mt-1 block w-full px-3 py-2 border border-stone-300 dark:border-white/20 rounded-lg shadow-sm placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pantrii-500 focus:border-pantrii-500 dark:bg-white/10 dark:text-white"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                   placeholder="you@example.com"
                 />
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-stone-700 dark:text-neutral-300">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                   Password
                 </label>
                 <input
@@ -130,13 +130,13 @@ export default function RegisterPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="mt-1 block w-full px-3 py-2 border border-stone-300 dark:border-white/20 rounded-lg shadow-sm placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pantrii-500 focus:border-pantrii-500 dark:bg-white/10 dark:text-white"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                   placeholder="Create a password"
                 />
               </div>
 
               <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-stone-700 dark:text-neutral-300">
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
                   Confirm password
                 </label>
                 <input
@@ -147,15 +147,15 @@ export default function RegisterPage() {
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="mt-1 block w-full px-3 py-2 border border-stone-300 dark:border-white/20 rounded-lg shadow-sm placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-pantrii-500 focus:border-pantrii-500 dark:bg-white/10 dark:text-white"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                   placeholder="Confirm your password"
                 />
               </div>
             </div>
 
             {error && (
-              <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-600">{error}</p>
               </div>
             )}
 
@@ -163,7 +163,7 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-pantrii-600 hover:bg-pantrii-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pantrii-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? "Creating account..." : "Create account"}
               </button>
@@ -174,7 +174,7 @@ export default function RegisterPage() {
         <div className="text-center">
           <Link
             href="/"
-            className="text-sm text-stone-600 dark:text-neutral-400 hover:text-stone-900 dark:hover:text-white"
+            className="text-sm text-gray-600 hover:text-gray-900"
           >
             ← Back to home
           </Link>
@@ -183,4 +183,7 @@ export default function RegisterPage() {
     </div>
   )
 }
+
+
+
 

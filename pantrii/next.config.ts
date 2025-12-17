@@ -1,7 +1,17 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      // Externalize canvas for server-side rendering
+      config.externals = config.externals || [];
+      config.externals.push({
+        canvas: 'canvas',
+      });
+    }
+    return config;
+  },
+  serverExternalPackages: ['canvas', 'pdf-img-convert'],
 };
 
 export default nextConfig;

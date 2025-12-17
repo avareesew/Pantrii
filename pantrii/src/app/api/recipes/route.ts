@@ -18,7 +18,13 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" }
     })
 
-    return NextResponse.json(recipes)
+    // Parse JSON fields for response
+    return NextResponse.json(recipes.map(recipe => ({
+      ...recipe,
+      ingredients: JSON.parse(recipe.ingredients),
+      instructions: JSON.parse(recipe.instructions),
+      nutrition: recipe.nutrition ? JSON.parse(recipe.nutrition) : null,
+    })))
   } catch (error) {
     console.error("Error fetching recipes:", error)
     return NextResponse.json(
@@ -36,23 +42,47 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { title, description, ingredients, instructions, prepTime, cookTime, servings, tags } = await request.json()
+    const { 
+      recipe_name, 
+      servings, 
+      prep_time_minutes, 
+      cook_time_minutes, 
+      ingredients, 
+      instructions, 
+      nutrition,
+      fileHash 
+    } = await request.json()
+
+    // Validate required fields
+    if (!recipe_name) {
+      return NextResponse.json({ error: "recipe_name is required" }, { status: 400 })
+    }
+
+    // Ensure ingredients and instructions are arrays
+    const ingredientsArray = Array.isArray(ingredients) ? ingredients : []
+    const instructionsArray = Array.isArray(instructions) ? instructions : []
 
     const recipe = await prisma.recipe.create({
       data: {
-        title,
-        description,
-        ingredients,
-        instructions,
-        prepTime,
-        cookTime,
-        servings,
-        tags,
+        recipe_name,
+        servings: servings || null,
+        prep_time_minutes: prep_time_minutes || null,
+        cook_time_minutes: cook_time_minutes || null,
+        ingredients: JSON.stringify(ingredientsArray),
+        instructions: JSON.stringify(instructionsArray),
+        nutrition: nutrition ? JSON.stringify(nutrition) : null,
+        fileHash: fileHash || null,
         userId: session.user.id,
       }
     })
 
-    return NextResponse.json(recipe, { status: 201 })
+    // Parse JSON fields for response
+    return NextResponse.json({
+      ...recipe,
+      ingredients: JSON.parse(recipe.ingredients),
+      instructions: JSON.parse(recipe.instructions),
+      nutrition: recipe.nutrition ? JSON.parse(recipe.nutrition) : null,
+    }, { status: 201 })
   } catch (error) {
     console.error("Error creating recipe:", error)
     return NextResponse.json(
@@ -61,4 +91,10 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
+
+
+
+
+
 

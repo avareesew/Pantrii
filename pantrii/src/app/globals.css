@@ -1,58 +1,5 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-
-  /* Pantrii brand palette */
-  --color-pantrii-50: #f3fbf6;
-  --color-pantrii-100: #e3f6ea;
-  --color-pantrii-200: #c8ecd6;
-  --color-pantrii-300: #a2debb;
-  --color-pantrii-400: #79ce9e;
-  --color-pantrii-500: #50be81;
-  --color-pantrii-600: #2f9e44; /* primary */
-  --color-pantrii-700: #277f39;
-  --color-pantrii-800: #1f642e;
-  --color-pantrii-900: #184f26;
-
-  /* Neutrals matching a modern kitchen vibe */
-  --color-cream: #faf7f2;
-  --color-sage: #e9f3ec;
-  --color-charcoal: #0f1412;
-  --color-stone: #2a2f2c;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans);
-}
-
-/* Subtle grid/texture for hero backgrounds */
-.hero-surface {
-  background-image:
-    radial-gradient(1200px 600px at 90% -10%, color-mix(in oklab, var(--color-pantrii-600) 12%, transparent) 0%, transparent 60%),
-    radial-gradient(800px 400px at 0% 10%, color-mix(in oklab, var(--color-pantrii-400) 14%, transparent) 0%, transparent 60%),
-    linear-gradient(180deg, color-mix(in oklab, var(--color-cream) 90%, transparent) 0%, transparent 40%);
-}
-
-.frosted {
-  background: color-mix(in oklab, var(--color-cream) 75%, transparent);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
+  font-family: var(--font-geist-sans);
 }

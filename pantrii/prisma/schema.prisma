@@ -61,19 +61,21 @@ model VerificationToken {
 }
 
 model Recipe {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  ingredients String
-  instructions String
-  prepTime    Int?     // in minutes
-  cookTime    Int?     // in minutes
-  servings    Int?
-  image       String?
-  tags        String?  // JSON string of tags
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String   @id @default(cuid())
+  recipe_name       String
+  servings          Int?
+  prep_time_minutes Int?
+  cook_time_minutes Int?
+  ingredients       String // JSON string of Ingredient[]
+  instructions      String // JSON string of Instruction[]
+  nutrition         String? // JSON string of Nutrition object
+  image             String?
+  fileHash          String? // For caching - hash of original file
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([fileHash])
 }

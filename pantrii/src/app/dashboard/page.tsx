@@ -2,52 +2,104 @@
 
 import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
+
+interface Ingredient {
+  quantity: string;
+  unit: string;
+  item: string;
+  notes: string;
+}
+
+interface Instruction {
+  step_number: number;
+  text: string;
+}
+
+interface Nutrition {
+  calories: number | null;
+  protein_g: number | null;
+  fat_g: number | null;
+  carbs_g: number | null;
+}
+
+interface Recipe {
+  id: string
+  recipe_name: string
+  servings: number | null
+  prep_time_minutes: number | null
+  cook_time_minutes: number | null
+  ingredients: Ingredient[]
+  instructions: Instruction[]
+  nutrition: Nutrition | null
+  createdAt: string
+  updatedAt: string
+}
 
 export default function DashboardPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const [recipes, setRecipes] = useState<Recipe[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (status === "loading") return // Still loading
-    if (!session) router.push("/login") // Not authenticated
+    if (status === "loading") return
+    if (!session) router.push("/login")
   }, [session, status, router])
 
-  if (status === "loading") {
+  useEffect(() => {
+    if (session) {
+      fetchRecipes()
+    }
+  }, [session])
+
+  const fetchRecipes = async () => {
+    try {
+      const response = await fetch("/api/recipes")
+      if (response.ok) {
+        const data = await response.json()
+        setRecipes(data)
+      }
+    } catch (error) {
+      console.error("Error fetching recipes:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen bg-[--color-cream] dark:bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pantrii-600 mx-auto"></div>
-          <p className="mt-2 text-stone-600 dark:text-neutral-300">Loading...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading...</p>
         </div>
       </div>
     )
   }
 
   if (!session) {
-    return null // Will redirect to login
+    return null
   }
 
   return (
-    <div className="min-h-screen bg-[--color-cream] dark:bg-black">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="border-b border-black/5 dark:border-white/10">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-6xl mx-auto px-4">
           <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Link href="/">
-                <Image src="/logo-pantrii.svg" alt="Pantrii" width={120} height={28} />
-              </Link>
-            </div>
+            <Link href="/" className="flex items-center">
+              <Image src="/logo-pantrii.svg" alt="Pantrii" width={120} height={28} />
+            </Link>
             <div className="flex items-center gap-4">
-              <span className="text-sm text-stone-600 dark:text-neutral-300">
+              <span className="text-sm text-gray-600">
                 Welcome, {session.user?.name || session.user?.email}
               </span>
               <button
                 onClick={() => signOut()}
-                className="text-sm text-stone-600 dark:text-neutral-300 hover:text-stone-900 dark:hover:text-white"
+                className="text-sm text-gray-600 hover:text-gray-900"
               >
                 Sign out
               </button>
@@ -57,80 +109,86 @@ export default function DashboardPage() {
       </header>
 
       {/* Main Content */}
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-stone-900 dark:text-white">
-            Your Kitchen Dashboard
-          </h1>
-          <p className="mt-2 text-stone-600 dark:text-neutral-300">
-            Manage your recipes, meal plans, and grocery lists.
-          </p>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 mb-8">
-          <div className="rounded-2xl border border-black/5 dark:border-white/10 bg-white dark:bg-white/5 p-6 shadow-sm">
-            <div className="flex items-center gap-3 mb-4">
-              <Image src="/feature-recipes.svg" alt="" width={32} height={32} />
-              <h3 className="text-lg font-semibold text-stone-900 dark:text-white">
-                My Recipes
-              </h3>
-            </div>
-            <p className="text-sm text-stone-600 dark:text-neutral-300 mb-4">
-              Save and organize your favorite recipes.
+      <main className="max-w-6xl mx-auto px-4 py-8">
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              My Recipes
+            </h1>
+            <p className="text-gray-600">
+              Manage your recipe collection.
             </p>
-            <button className="w-full rounded-lg bg-pantrii-600 text-white px-4 py-2 text-sm font-medium hover:bg-pantrii-700">
-              View Recipes
-            </button>
           </div>
-
-          <div className="rounded-2xl border border-black/5 dark:border-white/10 bg-white dark:bg-white/5 p-6 shadow-sm">
-            <div className="flex items-center gap-3 mb-4">
-              <Image src="/feature-meal-prep.svg" alt="" width={32} height={32} />
-              <h3 className="text-lg font-semibold text-stone-900 dark:text-white">
-                Meal Plans
-              </h3>
-            </div>
-            <p className="text-sm text-stone-600 dark:text-neutral-300 mb-4">
-              Plan your weekly meals and generate grocery lists.
-            </p>
-            <button className="w-full rounded-lg bg-pantrii-600 text-white px-4 py-2 text-sm font-medium hover:bg-pantrii-700">
-              Create Meal Plan
-            </button>
-          </div>
-
-          <div className="rounded-2xl border border-black/5 dark:border-white/10 bg-white dark:bg-white/5 p-6 shadow-sm">
-            <div className="flex items-center gap-3 mb-4">
-              <Image src="/feature-grocery.svg" alt="" width={32} height={32} />
-              <h3 className="text-lg font-semibold text-stone-900 dark:text-white">
-                Scan Recipes
-              </h3>
-            </div>
-            <p className="text-sm text-stone-600 dark:text-neutral-300 mb-4">
-              Import recipes from photos or documents.
-            </p>
+          <div className="flex gap-2">
             <Link
               href="/scan"
-              className="block w-full rounded-lg bg-pantrii-600 text-white px-4 py-2 text-sm font-medium hover:bg-pantrii-700 text-center"
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
             >
               Scan Recipe
+            </Link>
+            <Link
+              href="/manual-recipe"
+              className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
+            >
+              Add Manually
             </Link>
           </div>
         </div>
 
-        {/* Recent Activity */}
-        <div className="rounded-2xl border border-black/5 dark:border-white/10 bg-white dark:bg-white/5 p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-stone-900 dark:text-white mb-4">
-            Recent Activity
-          </h3>
-          <div className="text-center py-8">
-            <p className="text-stone-500 dark:text-neutral-400">
-              No recent activity yet. Start by scanning a recipe or creating a meal plan!
-            </p>
-          </div>
+        {/* Recipes List */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {recipes.length === 0 ? (
+            <div className="col-span-full bg-white p-12 rounded-lg shadow text-center">
+              <p className="text-gray-500 mb-4">No recipes yet. Start by adding one!</p>
+              <div className="flex gap-2 justify-center">
+                <Link
+                  href="/scan"
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+                >
+                  Scan Recipe
+                </Link>
+                <Link
+                  href="/manual-recipe"
+                  className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
+                >
+                  Add Manually
+                </Link>
+              </div>
+            </div>
+          ) : (
+            recipes.map((recipe) => (
+              <Link
+                key={recipe.id}
+                href={`/recipes/${recipe.id}`}
+                className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow"
+              >
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  {recipe.recipe_name}
+                </h3>
+                <div className="flex gap-4 text-xs text-gray-500">
+                  {recipe.prep_time_minutes && (
+                    <span>Prep: {recipe.prep_time_minutes} min</span>
+                  )}
+                  {recipe.cook_time_minutes && (
+                    <span>Cook: {recipe.cook_time_minutes} min</span>
+                  )}
+                  {recipe.servings && (
+                    <span>Serves: {recipe.servings}</span>
+                  )}
+                </div>
+                {recipe.ingredients && recipe.ingredients.length > 0 && (
+                  <p className="text-xs text-gray-400 mt-2">
+                    {recipe.ingredients.length} ingredients
+                  </p>
+                )}
+              </Link>
+            ))
+          )}
         </div>
       </main>
     </div>
   )
 }
+
+
 
