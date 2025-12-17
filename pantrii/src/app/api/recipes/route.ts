@@ -9,12 +9,14 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     
-    if (!session?.user?.id) {
+    if (!session?.user || !(session.user as any).id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const userId = (session.user as any).id;
+
     const recipes = await prisma.recipe.findMany({
-      where: { userId: session.user.id },
+      where: { userId },
       orderBy: { createdAt: "desc" }
     })
 
@@ -38,12 +40,17 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     
-    if (!session?.user?.id) {
+    if (!session?.user || !(session.user as any).id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const userId = (session.user as any).id;
+
     const { 
-      recipe_name, 
+      recipe_name,
+      author,
+      description,
+      link,
       servings, 
       prep_time_minutes, 
       cook_time_minutes, 
@@ -67,7 +74,7 @@ export async function POST(request: NextRequest) {
       const existingRecipe = await prisma.recipe.findFirst({
         where: {
           fileHash: fileHash,
-          userId: session.user.id,
+          userId: userId,
         }
       })
 
@@ -82,6 +89,9 @@ export async function POST(request: NextRequest) {
     const recipe = await prisma.recipe.create({
       data: {
         recipe_name,
+        author: author || null,
+        description: description || null,
+        link: link || null,
         servings: servings || null,
         prep_time_minutes: prep_time_minutes || null,
         cook_time_minutes: cook_time_minutes || null,
@@ -89,7 +99,7 @@ export async function POST(request: NextRequest) {
         instructions: JSON.stringify(instructionsArray),
         nutrition: nutrition ? JSON.stringify(nutrition) : null,
         fileHash: fileHash || null,
-        userId: session.user.id,
+        userId: userId,
       }
     })
 

@@ -4,6 +4,9 @@
 
 interface RecipeSchema {
   recipe_name: string;
+  author: string | null;
+  description: string | null;
+  link: string | null;
   servings: number | null;
   prep_time_minutes: number | null;
   cook_time_minutes: number | null;
@@ -51,6 +54,9 @@ export async function extractRecipeFromImage(
 Required JSON Schema:
 {
   "recipe_name": "string",
+  "author": "string" or null,
+  "description": "string" or null,
+  "link": "string" or null,
   "servings": integer or null,
   "prep_time_minutes": integer or null,
   "cook_time_minutes": integer or null,
@@ -81,6 +87,9 @@ CRITICAL INSTRUCTIONS:
 - Extract ALL instructions/directions/steps from the recipe. Instructions are REQUIRED - look for numbered steps, "Instructions:", "Directions:", "Method:", or any cooking steps.
 - Each instruction must have a "step_number" (1, 2, 3, etc.) and "text" (the actual instruction text).
 - If you see cooking steps, directions, or instructions in the image, you MUST include them in the instructions array.
+- Extract the author name if present (e.g., "By John Smith", "Recipe by...", "Author:...").
+- Extract the description if present (usually a brief introduction or summary of the recipe).
+- Extract the recipe link/URL if present (e.g., "Source: https://...", "From: www.example.com").
 - If nutrition information is not available, set nutrition to null
 - Return ONLY valid JSON, no markdown formatting, no code blocks, no explanations
 - Start your response with { and end with }
@@ -190,11 +199,43 @@ CRITICAL INSTRUCTIONS:
 }
 
 /**
+ * Convert text to title case if it's in all caps or mostly uppercase
+ */
+function toTitleCase(text: string): string {
+  if (!text) return text;
+  
+  // Check if text is all uppercase or mostly uppercase (more than 50% uppercase letters)
+  const letters = text.replace(/[^a-zA-Z]/g, '');
+  if (letters.length === 0) return text;
+  
+  const uppercaseCount = letters.split('').filter(c => c === c.toUpperCase()).length;
+  const isMostlyUppercase = uppercaseCount / letters.length > 0.5;
+  
+  // Only convert if it's mostly uppercase
+  if (!isMostlyUppercase) return text;
+  
+  // Convert to title case: first letter of each word capitalized, rest lowercase
+  return text
+    .toLowerCase()
+    .split(' ')
+    .map(word => {
+      if (word.length === 0) return word;
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    })
+    .join(' ');
+}
+
+/**
  * Validate and normalize recipe data to match schema
  */
 function validateAndNormalizeRecipe(data: any): RecipeSchema {
+  const rawRecipeName = data.recipe_name || 'Untitled Recipe';
+  const rawAuthor = data.author ? String(data.author).trim() : null;
   return {
-    recipe_name: data.recipe_name || 'Untitled Recipe',
+    recipe_name: toTitleCase(rawRecipeName),
+    author: rawAuthor ? toTitleCase(rawAuthor) : null,
+    description: data.description ? String(data.description).trim() : null,
+    link: data.link ? String(data.link).trim() : null,
     servings: typeof data.servings === 'number' ? data.servings : null,
     prep_time_minutes: typeof data.prep_time_minutes === 'number' ? data.prep_time_minutes : null,
     cook_time_minutes: typeof data.cook_time_minutes === 'number' ? data.cook_time_minutes : null,

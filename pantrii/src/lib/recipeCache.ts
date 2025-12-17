@@ -4,6 +4,9 @@ const prisma = new PrismaClient();
 
 interface CachedRecipe {
   recipe_name: string;
+  author: string | null;
+  description: string | null;
+  link: string | null;
   servings: number | null;
   prep_time_minutes: number | null;
   cook_time_minutes: number | null;
@@ -40,6 +43,9 @@ export async function getCachedRecipe(fileHash: string): Promise<CachedRecipe | 
 
     return {
       recipe_name: recipe.recipe_name,
+      author: recipe.author,
+      description: recipe.description,
+      link: recipe.link,
       servings: recipe.servings,
       prep_time_minutes: recipe.prep_time_minutes,
       cook_time_minutes: recipe.cook_time_minutes,
@@ -65,6 +71,9 @@ export async function saveCachedRecipe(
     await prisma.recipe.create({
       data: {
         recipe_name: recipe.recipe_name,
+        author: recipe.author,
+        description: recipe.description,
+        link: recipe.link,
         servings: recipe.servings,
         prep_time_minutes: recipe.prep_time_minutes,
         cook_time_minutes: recipe.cook_time_minutes,

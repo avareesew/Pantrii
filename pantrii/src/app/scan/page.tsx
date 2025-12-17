@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -53,7 +53,26 @@ export default function ScanPage() {
   const [showRawData, setShowRawData] = useState(false);
   const [rawData, setRawData] = useState<any>(null);
   const [saved, setSaved] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [progressMessage, setProgressMessage] = useState('');
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState<RecipeData | null>(null);
+  const [ingredientTexts, setIngredientTexts] = useState<{ [key: number]: string }>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const instructionTextareaRefs = useRef<{ [key: number]: HTMLTextAreaElement | null }>({});
+
+  // Auto-resize instruction textareas when they're rendered or content changes
+  useEffect(() => {
+    if (editing && editForm) {
+      editForm.instructions.forEach((_, index) => {
+        const textarea = instructionTextareaRefs.current[index];
+        if (textarea) {
+          textarea.style.height = 'auto';
+          textarea.style.height = `${textarea.scrollHeight}px`;
+        }
+      });
+    }
+  }, [editing, editForm?.instructions]);
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -61,15 +80,31 @@ export default function ScanPage() {
 
     setIsUploading(true);
     setError(null);
+    setProgress(0);
+    setProgressMessage('Preparing file...');
 
     try {
+      // Simulate upload progress (0-40%)
+      const uploadProgressInterval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev < 35) {
+            return prev + Math.random() * 3;
+          }
+          return prev;
+        });
+      }, 100);
+
       const formData = new FormData();
       formData.append('file', file);
 
+      setProgressMessage('Uploading file to server...');
       const uploadResponse = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       });
+
+      clearInterval(uploadProgressInterval);
+      setProgress(40);
 
       if (!uploadResponse.ok) {
         const errorData = await uploadResponse.json();
@@ -82,18 +117,34 @@ export default function ScanPage() {
       // Start scanning
       setIsUploading(false);
       setIsScanning(true);
+      setProgress(45);
+      setProgressMessage('Analyzing document with AI...');
 
-          const scanResponse = await fetch('/api/scan', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              filename: uploadData.filename,
-              filepath: uploadData.filepath,
-              debug: false, // Disabled debug mode to test improved parsing
-            }),
-          });
+      // Simulate scanning progress (45-90%)
+      const scanProgressInterval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev < 85) {
+            return prev + Math.random() * 2;
+          }
+          return prev;
+        });
+      }, 200);
+
+      const scanResponse = await fetch('/api/scan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          filename: uploadData.filename,
+          filepath: uploadData.filepath,
+          debug: false,
+        }),
+      });
+
+      clearInterval(scanProgressInterval);
+      setProgress(90);
+      setProgressMessage('Extracting recipe details...');
 
       // Read response once
       const contentType = scanResponse.headers.get('content-type') || '';
@@ -119,14 +170,25 @@ export default function ScanPage() {
 
       // Parse JSON response
       const scanData = JSON.parse(responseText);
-      setScanResult(scanData);
       
-      // Remove raw data view since we're using Gemini vision now
+      // Complete progress - ensure it reaches 100% and stays visible
+      setProgress(100);
+      setProgressMessage('Recipe extracted successfully!');
+      
+      // Keep progress bar at 100% visible for a full second before showing results
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Now show the results and stop the loading states
+      setScanResult(scanData);
+      setEditForm(scanData.recipeData); // Initialize edit form with scanned data
       setShowRawData(false);
+      setIsUploading(false);
+      setIsScanning(false);
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
+      setProgress(0);
+      setProgressMessage('');
       setIsUploading(false);
       setIsScanning(false);
     }
@@ -168,7 +230,10 @@ export default function ScanPage() {
   };
 
   const handleSaveRecipe = async () => {
-    if (!scanResult || !scanResult.recipeData) {
+    // Use edited data if in edit mode, otherwise use original scan result
+    const recipeDataToSave = editing && editForm ? editForm : (scanResult?.recipeData);
+    
+    if (!recipeDataToSave) {
       setError('No recipe data to save');
       return;
     }
@@ -182,7 +247,7 @@ export default function ScanPage() {
     setError(null);
 
     try {
-      const recipeData = scanResult.recipeData;
+      const recipeData = recipeDataToSave;
       const response = await fetch('/api/recipes', {
         method: 'POST',
         headers: {
@@ -190,6 +255,9 @@ export default function ScanPage() {
         },
         body: JSON.stringify({
           recipe_name: recipeData.recipe_name || 'Untitled Recipe',
+          author: recipeData.author || null,
+          description: recipeData.description || null,
+          link: recipeData.link || null,
           servings: recipeData.servings,
           prep_time_minutes: recipeData.prep_time_minutes,
           cook_time_minutes: recipeData.cook_time_minutes,
@@ -224,6 +292,112 @@ export default function ScanPage() {
     }
   };
 
+  // Helper function to format ingredient object into a single string
+  const formatIngredient = (ingredient: Ingredient): string => {
+    const parts: string[] = [];
+    if (ingredient.quantity) parts.push(ingredient.quantity);
+    if (ingredient.unit) parts.push(ingredient.unit);
+    if (ingredient.item) parts.push(ingredient.item);
+    if (ingredient.notes) parts.push(`(${ingredient.notes})`);
+    return parts.join(' ');
+  };
+
+  // Helper function to parse ingredient string back into object
+  const parseIngredient = (text: string): Ingredient => {
+    // Simple parsing: try to extract notes in parentheses, then split the rest
+    const notesMatch = text.match(/\(([^)]+)\)/);
+    const notes = notesMatch ? notesMatch[1] : '';
+    const withoutNotes = text.replace(/\([^)]+\)/g, '').trim();
+    
+    // Split by spaces and try to identify quantity, unit, and item
+    const parts = withoutNotes.split(/\s+/).filter(p => p);
+    
+    if (parts.length === 0) {
+      return { quantity: '', unit: '', item: '', notes };
+    }
+    
+    // If it's just one or two words, treat as item
+    if (parts.length <= 2) {
+      return { quantity: '', unit: '', item: parts.join(' '), notes };
+    }
+    
+    // Try to parse: first part might be quantity, second might be unit, rest is item
+    const quantity = parts[0];
+    const unit = parts[1];
+    const item = parts.slice(2).join(' ');
+    
+    return { quantity, unit, item, notes };
+  };
+
+  const addIngredient = () => {
+    if (!editForm) return;
+    const newIndex = editForm.ingredients.length;
+    setEditForm({
+      ...editForm,
+      ingredients: [...editForm.ingredients, { quantity: '', unit: '', item: '', notes: '' }],
+    });
+    // Initialize the text for the new ingredient
+    setIngredientTexts({ ...ingredientTexts, [newIndex]: '' });
+  };
+
+  const removeIngredient = (index: number) => {
+    if (!editForm) return;
+    setEditForm({
+      ...editForm,
+      ingredients: editForm.ingredients.filter((_, i) => i !== index),
+    });
+    // Remove the text entry and reindex remaining entries
+    const newTexts: { [key: number]: string } = {};
+    editForm.ingredients.forEach((_, i) => {
+      if (i < index && ingredientTexts[i] !== undefined) {
+        newTexts[i] = ingredientTexts[i];
+      } else if (i > index && ingredientTexts[i] !== undefined) {
+        newTexts[i - 1] = ingredientTexts[i];
+      }
+    });
+    setIngredientTexts(newTexts);
+  };
+
+  const updateIngredient = (index: number, text: string) => {
+    // Store the raw text for editing (preserves cursor position)
+    setIngredientTexts({ ...ingredientTexts, [index]: text });
+  };
+
+  const handleIngredientBlur = (index: number) => {
+    // Parse the ingredient when user finishes editing (on blur)
+    if (!editForm) return;
+    const text = ingredientTexts[index] || formatIngredient(editForm.ingredients[index]);
+    const updated = [...editForm.ingredients];
+    updated[index] = parseIngredient(text);
+    setEditForm({ ...editForm, ingredients: updated });
+    // Update the stored text to match the parsed format
+    setIngredientTexts({ ...ingredientTexts, [index]: formatIngredient(updated[index]) });
+  };
+
+  const addInstruction = () => {
+    if (!editForm) return;
+    setEditForm({
+      ...editForm,
+      instructions: [...editForm.instructions, { step_number: editForm.instructions.length + 1, text: '' }],
+    });
+  };
+
+  const removeInstruction = (index: number) => {
+    if (!editForm) return;
+    const updated = editForm.instructions.filter((_, i) => i !== index).map((inst, idx) => ({
+      ...inst,
+      step_number: idx + 1,
+    }));
+    setEditForm({ ...editForm, instructions: updated });
+  };
+
+  const updateInstruction = (index: number, text: string) => {
+    if (!editForm) return;
+    const updated = [...editForm.instructions];
+    updated[index] = { ...updated[index], text };
+    setEditForm({ ...editForm, instructions: updated });
+  };
+
   const resetForm = () => {
     setUploadResult(null);
     setScanResult(null);
@@ -231,6 +405,10 @@ export default function ScanPage() {
     setShowRawData(false);
     setRawData(null);
     setSaved(false);
+    setProgress(0);
+    setProgressMessage('');
+    setEditing(false);
+    setEditForm(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -290,18 +468,22 @@ export default function ScanPage() {
               <div className="space-y-4">
                 <div className="flex items-center gap-2 text-sm text-green-600">
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-green-600 border-t-transparent"></div>
-                  {isUploading ? 'Uploading file...' : 'Processing document...'}
+                  {progressMessage || (isUploading ? 'Uploading file...' : 'Processing document...')}
                 </div>
                 
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-green-600 h-2 rounded-full transition-all duration-300 ease-out w-full"></div>
+                <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                  <div 
+                    className="bg-green-600 h-2 rounded-full transition-all duration-300 ease-out"
+                    style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+                  ></div>
                 </div>
                 
-                {isScanning && (
-                  <div className="text-xs text-gray-500">
-                    Converting PDF to images and extracting recipe using AI...
-                  </div>
-                )}
+                <div className="text-xs text-gray-500 text-center">
+                  {progress < 40 && 'Uploading your file...'}
+                  {progress >= 40 && progress < 90 && 'AI is analyzing your recipe document...'}
+                  {progress >= 90 && progress < 100 && 'Extracting ingredients and instructions...'}
+                  {progress >= 100 && 'Complete!'}
+                </div>
               </div>
             )}
 
@@ -311,112 +493,383 @@ export default function ScanPage() {
           </div>
         )}
 
-            {scanResult && (
+            {scanResult && editForm && (
               <div className="mt-8 space-y-6">
-                {/* Parsed recipe view */}
-                <>
-                    {/* Recipe Header */}
-                    {scanResult.recipeData && scanResult.recipeData.recipe_name && (
-                      <div className="bg-white rounded-lg border border-gray-200 p-6">
-                        <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                          {scanResult.recipeData.recipe_name}
-                        </h3>
-                        
-                        <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
-                          {scanResult.recipeData.prep_time_minutes && (
-                            <span>Prep: {scanResult.recipeData.prep_time_minutes} min</span>
-                          )}
-                          {scanResult.recipeData.cook_time_minutes && (
-                            <span>Cook: {scanResult.recipeData.cook_time_minutes} min</span>
-                          )}
-                          {scanResult.recipeData.servings && (
-                            <span>Serves: {scanResult.recipeData.servings}</span>
-                          )}
+                {/* Recipe Header */}
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    {editing ? (
+                      <input
+                        type="text"
+                        value={editForm.recipe_name}
+                        onChange={(e) => setEditForm({ ...editForm, recipe_name: e.target.value })}
+                        className="text-2xl font-bold text-gray-900 flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                        placeholder="Recipe Name"
+                      />
+                    ) : (
+                      <h3 className="text-2xl font-bold text-gray-900">
+                        {editForm.recipe_name}
+                      </h3>
+                    )}
+                    {!editing && (
+                      <button
+                        onClick={() => setEditing(true)}
+                        className="ml-4 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm"
+                      >
+                        Edit
+                      </button>
+                    )}
+                  </div>
+                  
+                  {/* Author, Description, Link */}
+                  {editing ? (
+                    <div className="mb-4 space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Author</label>
+                        <input
+                          type="text"
+                          value={editForm.author || ''}
+                          onChange={(e) => setEditForm({ ...editForm, author: e.target.value || null })}
+                          placeholder="Recipe author"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                        <textarea
+                          value={editForm.description || ''}
+                          onChange={(e) => setEditForm({ ...editForm, description: e.target.value || null })}
+                          placeholder="Recipe description"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Link</label>
+                        <input
+                          type="url"
+                          value={editForm.link || ''}
+                          onChange={(e) => setEditForm({ ...editForm, link: e.target.value || null })}
+                          placeholder="https://example.com/recipe"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    (editForm.author || editForm.description || editForm.link) && (
+                      <div className="mb-4 space-y-2">
+                        {editForm.author && (
+                          <p className="text-gray-600">
+                            <span className="font-medium">Author:</span> {editForm.author}
+                          </p>
+                        )}
+                        {editForm.description && (
+                          <p className="text-gray-700">{editForm.description}</p>
+                        )}
+                        {editForm.link && (
+                          <p className="text-gray-600">
+                            <span className="font-medium">Source:</span>{' '}
+                            <a
+                              href={editForm.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-green-600 hover:text-green-700 underline"
+                            >
+                              {editForm.link}
+                            </a>
+                          </p>
+                        )}
+                      </div>
+                    )
+                  )}
+                  
+                  {/* Prep/Cook/Servings */}
+                  {editing ? (
+                    <div className="flex flex-wrap gap-4 mb-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Prep Time (min)</label>
+                        <input
+                          type="number"
+                          value={editForm.prep_time_minutes || ''}
+                          onChange={(e) => setEditForm({ ...editForm, prep_time_minutes: e.target.value ? parseInt(e.target.value) : null })}
+                          placeholder="Prep time"
+                          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 w-32"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Cook Time (min)</label>
+                        <input
+                          type="number"
+                          value={editForm.cook_time_minutes || ''}
+                          onChange={(e) => setEditForm({ ...editForm, cook_time_minutes: e.target.value ? parseInt(e.target.value) : null })}
+                          placeholder="Cook time"
+                          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 w-32"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Servings</label>
+                        <input
+                          type="number"
+                          value={editForm.servings || ''}
+                          onChange={(e) => setEditForm({ ...editForm, servings: e.target.value ? parseInt(e.target.value) : null })}
+                          placeholder="Servings"
+                          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 w-32"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
+                      {editForm.prep_time_minutes && (
+                        <span>Prep: {editForm.prep_time_minutes} min</span>
+                      )}
+                      {editForm.cook_time_minutes && (
+                        <span>Cook: {editForm.cook_time_minutes} min</span>
+                      )}
+                      {editForm.servings && (
+                        <span>Serves: {editForm.servings}</span>
+                      )}
+                    </div>
+                  )}
+                  
+                  {scanResult.cached && !editing && (
+                    <div className="text-xs text-green-600 mt-2">
+                      ✓ Loaded from cache
+                    </div>
+                  )}
+                </div>
+
+                {/* Ingredients */}
+                {editForm.ingredients && editForm.ingredients.length > 0 && (
+                  <div className="bg-white rounded-lg border border-gray-200 p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-gray-900">Ingredients</h3>
+                      {editing && (
+                        <button
+                          onClick={addIngredient}
+                          className="text-sm text-green-600 hover:text-green-700"
+                        >
+                          + Add Ingredient
+                        </button>
+                      )}
+                    </div>
+                    {editing ? (
+                      <div className="space-y-2">
+                        {editForm.ingredients.map((ingredient, index) => {
+                          // Use stored text if available, otherwise format the ingredient
+                          const displayValue = ingredientTexts[index] !== undefined 
+                            ? ingredientTexts[index] 
+                            : formatIngredient(ingredient);
+                          
+                          return (
+                            <div key={index} className="flex gap-2 items-start">
+                              <input
+                                type="text"
+                                value={displayValue}
+                                onChange={(e) => updateIngredient(index, e.target.value)}
+                                onBlur={() => handleIngredientBlur(index)}
+                                placeholder="e.g., 1 cup flour or 2 tablespoons butter, melted"
+                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                              />
+                              <button
+                                onClick={() => removeIngredient(index)}
+                                className="text-red-600 hover:text-red-700 px-2 py-2"
+                                title="Remove ingredient"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <ul className="space-y-2">
+                        {editForm.ingredients.map((ingredient, index) => (
+                          <li key={index} className="flex items-start gap-2">
+                            <span className="text-green-600 mt-1">•</span>
+                            <span className="text-gray-700">
+                              {ingredient.quantity && `${ingredient.quantity} `}
+                              {ingredient.unit && `${ingredient.unit} `}
+                              {ingredient.item}
+                              {ingredient.notes && ` (${ingredient.notes})`}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+
+                {/* Instructions */}
+                {editForm.instructions && editForm.instructions.length > 0 && (
+                  <div className="bg-white rounded-lg border border-gray-200 p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-gray-900">Instructions</h3>
+                      {editing && (
+                        <button
+                          onClick={addInstruction}
+                          className="text-sm text-green-600 hover:text-green-700"
+                        >
+                          + Add Instruction
+                        </button>
+                      )}
+                    </div>
+                    {editing ? (
+                      <div className="space-y-3">
+                        {editForm.instructions.map((instruction, index) => (
+                          <div key={index} className="flex gap-3">
+                            <span className="flex-shrink-0 w-6 h-6 bg-green-600 text-white text-sm rounded-full flex items-center justify-center font-semibold">
+                              {instruction.step_number || index + 1}
+                            </span>
+                            <textarea
+                              ref={(el) => {
+                                instructionTextareaRefs.current[index] = el;
+                                if (el) {
+                                  // Initialize height
+                                  el.style.height = 'auto';
+                                  el.style.height = `${el.scrollHeight}px`;
+                                }
+                              }}
+                              value={instruction.text}
+                              onChange={(e) => {
+                                updateInstruction(index, e.target.value);
+                                // Auto-resize textarea
+                                e.target.style.height = 'auto';
+                                e.target.style.height = `${e.target.scrollHeight}px`;
+                              }}
+                              onInput={(e) => {
+                                // Auto-resize on input
+                                const target = e.target as HTMLTextAreaElement;
+                                target.style.height = 'auto';
+                                target.style.height = `${target.scrollHeight}px`;
+                              }}
+                              placeholder="Instruction text"
+                              rows={1}
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 resize-none overflow-hidden"
+                              style={{ minHeight: '2.5rem' }}
+                            />
+                            <button
+                              onClick={() => removeInstruction(index)}
+                              className="text-red-600 hover:text-red-700 px-2"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <ol className="space-y-3">
+                        {editForm.instructions.map((instruction, index) => (
+                          <li key={index} className="flex gap-3">
+                            <span className="flex-shrink-0 w-6 h-6 bg-green-600 text-white text-sm rounded-full flex items-center justify-center font-semibold">
+                              {instruction.step_number || index + 1}
+                            </span>
+                            <span className="text-gray-700">{instruction.text}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+                  </div>
+                )}
+
+                {/* Nutrition */}
+                {(editForm.nutrition || editing) && (
+                  <div className="bg-white rounded-lg border border-gray-200 p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      Nutrition
+                    </h3>
+                    {editing ? (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                          <label className="block text-sm text-gray-600 mb-1">Calories</label>
+                          <input
+                            type="number"
+                            value={editForm.nutrition?.calories || ''}
+                            onChange={(e) => setEditForm({
+                              ...editForm,
+                              nutrition: {
+                                ...(editForm.nutrition || { calories: null, protein_g: null, fat_g: null, carbs_g: null }),
+                                calories: e.target.value ? parseInt(e.target.value) : null,
+                              },
+                            })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                          />
                         </div>
-                        {scanResult.cached && (
-                          <div className="text-xs text-green-600 mt-2">
-                            ✓ Loaded from cache
+                        <div>
+                          <label className="block text-sm text-gray-600 mb-1">Protein (g)</label>
+                          <input
+                            type="number"
+                            value={editForm.nutrition?.protein_g || ''}
+                            onChange={(e) => setEditForm({
+                              ...editForm,
+                              nutrition: {
+                                ...(editForm.nutrition || { calories: null, protein_g: null, fat_g: null, carbs_g: null }),
+                                protein_g: e.target.value ? parseInt(e.target.value) : null,
+                              },
+                            })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm text-gray-600 mb-1">Fat (g)</label>
+                          <input
+                            type="number"
+                            value={editForm.nutrition?.fat_g || ''}
+                            onChange={(e) => setEditForm({
+                              ...editForm,
+                              nutrition: {
+                                ...(editForm.nutrition || { calories: null, protein_g: null, fat_g: null, carbs_g: null }),
+                                fat_g: e.target.value ? parseInt(e.target.value) : null,
+                              },
+                            })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm text-gray-600 mb-1">Carbs (g)</label>
+                          <input
+                            type="number"
+                            value={editForm.nutrition?.carbs_g || ''}
+                            onChange={(e) => setEditForm({
+                              ...editForm,
+                              nutrition: {
+                                ...(editForm.nutrition || { calories: null, protein_g: null, fat_g: null, carbs_g: null }),
+                                carbs_g: e.target.value ? parseInt(e.target.value) : null,
+                              },
+                            })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        {editForm.nutrition.calories !== null && (
+                          <div>
+                            <span className="text-gray-600">Calories:</span>
+                            <span className="ml-2 font-medium">{editForm.nutrition.calories}</span>
+                          </div>
+                        )}
+                        {editForm.nutrition.protein_g !== null && (
+                          <div>
+                            <span className="text-gray-600">Protein:</span>
+                            <span className="ml-2 font-medium">{editForm.nutrition.protein_g}g</span>
+                          </div>
+                        )}
+                        {editForm.nutrition.fat_g !== null && (
+                          <div>
+                            <span className="text-gray-600">Fat:</span>
+                            <span className="ml-2 font-medium">{editForm.nutrition.fat_g}g</span>
+                          </div>
+                        )}
+                        {editForm.nutrition.carbs_g !== null && (
+                          <div>
+                            <span className="text-gray-600">Carbs:</span>
+                            <span className="ml-2 font-medium">{editForm.nutrition.carbs_g}g</span>
                           </div>
                         )}
                       </div>
                     )}
-
-                    {/* Ingredients */}
-                    {scanResult.recipeData && scanResult.recipeData.ingredients && scanResult.recipeData.ingredients.length > 0 && (
-                      <div className="bg-white rounded-lg border border-gray-200 p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                          Ingredients
-                        </h3>
-                        <ul className="space-y-2">
-                          {scanResult.recipeData.ingredients.map((ingredient, index) => (
-                            <li key={index} className="flex items-start gap-2">
-                              <span className="text-green-600 mt-1">•</span>
-                              <span className="text-gray-700">
-                                {ingredient.quantity && `${ingredient.quantity} `}
-                                {ingredient.unit && `${ingredient.unit} `}
-                                {ingredient.item}
-                                {ingredient.notes && ` (${ingredient.notes})`}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {/* Instructions */}
-                    {scanResult.recipeData && scanResult.recipeData.instructions && scanResult.recipeData.instructions.length > 0 && (
-                      <div className="bg-white rounded-lg border border-gray-200 p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                          Instructions
-                        </h3>
-                        <ol className="space-y-3">
-                          {scanResult.recipeData.instructions.map((instruction, index) => (
-                            <li key={index} className="flex gap-3">
-                              <span className="flex-shrink-0 w-6 h-6 bg-green-600 text-white text-sm rounded-full flex items-center justify-center font-semibold">
-                                {instruction.step_number || index + 1}
-                              </span>
-                              <span className="text-gray-700">{instruction.text}</span>
-                            </li>
-                          ))}
-                        </ol>
-                      </div>
-                    )}
-
-                    {/* Nutrition */}
-                    {scanResult.recipeData && scanResult.recipeData.nutrition && (
-                      <div className="bg-white rounded-lg border border-gray-200 p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                          Nutrition
-                        </h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                          {scanResult.recipeData.nutrition.calories !== null && (
-                            <div>
-                              <span className="text-gray-600">Calories:</span>
-                              <span className="ml-2 font-medium">{scanResult.recipeData.nutrition.calories}</span>
-                            </div>
-                          )}
-                          {scanResult.recipeData.nutrition.protein_g !== null && (
-                            <div>
-                              <span className="text-gray-600">Protein:</span>
-                              <span className="ml-2 font-medium">{scanResult.recipeData.nutrition.protein_g}g</span>
-                            </div>
-                          )}
-                          {scanResult.recipeData.nutrition.fat_g !== null && (
-                            <div>
-                              <span className="text-gray-600">Fat:</span>
-                              <span className="ml-2 font-medium">{scanResult.recipeData.nutrition.fat_g}g</span>
-                            </div>
-                          )}
-                          {scanResult.recipeData.nutrition.carbs_g !== null && (
-                            <div>
-                              <span className="text-gray-600">Carbs:</span>
-                              <span className="ml-2 font-medium">{scanResult.recipeData.nutrition.carbs_g}g</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </>
+                  </div>
+                )}
 
                 {/* Action Buttons */}
                 <div className="flex gap-4">
@@ -428,25 +881,56 @@ export default function ScanPage() {
                     </div>
                   ) : (
                     <>
-                      <button
-                        onClick={handleSaveRecipe}
-                        disabled={isSaving || saved}
-                        className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50"
-                      >
-                        {isSaving ? 'Saving...' : saved ? 'Saved' : 'Save Recipe'}
-                      </button>
-                      <button
-                        onClick={resetForm}
-                        className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700"
-                      >
-                        Scan Another Recipe
-                      </button>
-                      <Link
-                        href="/dashboard"
-                        className="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300"
-                      >
-                        Cancel
-                      </Link>
+                      {editing ? (
+                        <>
+                          <button
+                            onClick={handleSaveRecipe}
+                            disabled={isSaving}
+                            className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50"
+                          >
+                            {isSaving ? 'Saving...' : 'Save Recipe'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditing(false);
+                              setEditForm(scanResult?.recipeData || null);
+                              // Reset ingredient texts to formatted values
+                              if (scanResult?.recipeData) {
+                                const resetTexts: { [key: number]: string } = {};
+                                scanResult.recipeData.ingredients.forEach((ing, idx) => {
+                                  resetTexts[idx] = formatIngredient(ing);
+                                });
+                                setIngredientTexts(resetTexts);
+                              }
+                            }}
+                            className="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300"
+                          >
+                            Cancel Edit
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={handleSaveRecipe}
+                            disabled={isSaving || saved}
+                            className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50"
+                          >
+                            {isSaving ? 'Saving...' : saved ? 'Saved' : 'Save Recipe'}
+                          </button>
+                          <button
+                            onClick={resetForm}
+                            className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700"
+                          >
+                            Scan Another Recipe
+                          </button>
+                          <Link
+                            href="/dashboard"
+                            className="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300"
+                          >
+                            Cancel
+                          </Link>
+                        </>
+                      )}
                     </>
                   )}
                 </div>
@@ -454,20 +938,22 @@ export default function ScanPage() {
             )}
           </div>
 
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Or add recipe manually
-            </h3>
-            <p className="text-gray-600 mb-4">
-              Can't scan your recipe? Add it manually instead.
-            </p>
-            <Link
-              href="/manual-recipe"
-              className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-            >
-              Add Recipe Manually
-            </Link>
-          </div>
+          {!uploadResult && !scanResult && (
+            <div className="mt-8 pt-6 border-t border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Or add recipe manually
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Can't scan your recipe? Add it manually instead.
+              </p>
+              <Link
+                href="/manual-recipe"
+                className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+              >
+                Add Recipe Manually
+              </Link>
+            </div>
+          )}
         </div>
       </main>
     </div>

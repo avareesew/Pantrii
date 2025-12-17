@@ -4,7 +4,7 @@ import { existsSync } from 'fs';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { hashFile, hashBuffer } from '@/lib/fileHash';
-import { getCachedRecipe, saveCachedRecipe } from '@/lib/recipeCache';
+import { getCachedRecipe } from '@/lib/recipeCache';
 import { extractRecipeFromImage } from '@/lib/geminiVision';
 
 /**
@@ -97,14 +97,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Save to cache for future use
-    try {
-      await saveCachedRecipe(fileHash, recipeData, userId);
-      console.log('Recipe saved to cache');
-    } catch (cacheError) {
-      console.error('Failed to save to cache (non-fatal):', cacheError);
-      // Don't fail the request if caching fails
-    }
+    // Note: We don't save recipes automatically here
+    // Recipes are only saved when the user explicitly clicks "Save Recipe"
+    // The cache check above (getCachedRecipe) will find recipes that were previously saved
 
     // Return results
     return NextResponse.json({

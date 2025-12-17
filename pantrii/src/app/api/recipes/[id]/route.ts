@@ -69,7 +69,10 @@ export async function PUT(
     }
 
     const { 
-      recipe_name, 
+      recipe_name,
+      author,
+      description,
+      link,
       servings, 
       prep_time_minutes, 
       cook_time_minutes, 
@@ -86,6 +89,9 @@ export async function PUT(
       where: { id },
       data: {
         recipe_name: recipe_name || undefined,
+        author: author !== undefined ? (author || null) : undefined,
+        description: description !== undefined ? (description || null) : undefined,
+        link: link !== undefined ? (link || null) : undefined,
         servings: servings !== undefined ? servings : undefined,
         prep_time_minutes: prep_time_minutes !== undefined ? prep_time_minutes : undefined,
         cook_time_minutes: cook_time_minutes !== undefined ? cook_time_minutes : undefined,

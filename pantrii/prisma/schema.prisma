@@ -63,6 +63,9 @@ model VerificationToken {
 model Recipe {
   id                String   @id @default(cuid())
   recipe_name       String
+  author            String?
+  description       String?
+  link              String?
   servings          Int?
   prep_time_minutes Int?
   cook_time_minutes Int?
