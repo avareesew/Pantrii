@@ -173,6 +173,11 @@ export default function ScanPage() {
       return;
     }
 
+    // Prevent duplicate saves
+    if (saved || isSaving) {
+      return;
+    }
+
     setIsSaving(true);
     setError(null);
 
@@ -197,6 +202,14 @@ export default function ScanPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        // If recipe already exists, treat it as success (already saved)
+        if (response.status === 409) {
+          setSaved(true);
+          setTimeout(() => {
+            window.location.href = '/dashboard';
+          }, 1500);
+          return;
+        }
         throw new Error(errorData.error || 'Failed to save recipe');
       }
 
@@ -417,10 +430,10 @@ export default function ScanPage() {
                     <>
                       <button
                         onClick={handleSaveRecipe}
-                        disabled={isSaving}
+                        disabled={isSaving || saved}
                         className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50"
                       >
-                        {isSaving ? 'Saving...' : 'Save Recipe'}
+                        {isSaving ? 'Saving...' : saved ? 'Saved' : 'Save Recipe'}
                       </button>
                       <button
                         onClick={resetForm}

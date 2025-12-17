@@ -1,49 +1,78 @@
 import { readFile } from 'fs/promises';
+import * as pdfjsLib from 'pdfjs-dist';
+import { createCanvas } from 'canvas';
+
+// Configure pdfjs worker - use the version from the package
+const pdfjsVersion = '5.4.149'; // Match your package.json version
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsVersion}/pdf.worker.min.mjs`;
 
 /**
- * Convert PDF pages to high-resolution PNG images
- * Note: PDF conversion requires native bindings that may not work in all environments
- * For now, this is a placeholder that will throw an error with helpful message
+ * Convert PDF pages to high-resolution PNG images using pdfjs-dist
+ * This approach uses canvas which requires native bindings, but we'll handle errors gracefully
  */
 export async function convertPdfToImages(
   pdfPath: string,
   outputDir?: string
 ): Promise<Buffer[]> {
-  // Try to use pdf-img-convert if available, otherwise provide helpful error
   try {
-    // Dynamic import to avoid bundling issues
-    const pdfImgConvert = await import('pdf-img-convert');
     const pdfBuffer = await readFile(pdfPath);
-
-    // Use the convert function from pdf-img-convert
-    const convert = pdfImgConvert.convert || (pdfImgConvert as any).default?.convert;
     
-    if (!convert) {
-      throw new Error('PDF conversion library not properly loaded');
+    // Load the PDF document
+    const loadingTask = pdfjsLib.getDocument({
+      data: pdfBuffer,
+      useSystemFonts: true,
+    });
+    
+    const pdf = await loadingTask.promise;
+    const numPages = pdf.numPages;
+    const imageBuffers: Buffer[] = [];
+
+    // Convert each page to an image
+    for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      
+      // Set scale for high resolution (2.0 = 200% scale)
+      const scale = 2.0;
+      const viewport = page.getViewport({ scale });
+
+      // Create canvas
+      const canvas = createCanvas(viewport.width, viewport.height);
+      const context = canvas.getContext('2d');
+
+      // Render PDF page to canvas
+      const renderContext = {
+        canvasContext: context as any,
+        viewport: viewport,
+      };
+
+      await page.render(renderContext).promise;
+
+      // Convert canvas to PNG buffer
+      const buffer = canvas.toBuffer('image/png');
+      imageBuffers.push(buffer);
     }
 
-    const imageArray = await convert(pdfBuffer, {
-      width: 2000, // High resolution
-      height: 2000,
-      page_numbers: [], // Convert all pages
-      base64: false, // Return as buffer
-    });
-
-    if (imageArray.length === 0) {
+    if (imageBuffers.length === 0) {
       throw new Error('No pages extracted from PDF');
     }
 
-    // Convert Uint8Array to Buffer
-    return imageArray.map((img: any) => Buffer.from(img));
+    return imageBuffers;
   } catch (error) {
     console.error('Error converting PDF to images:', error);
     
-    // Provide helpful error message
-    if (error instanceof Error && error.message.includes('canvas')) {
+    // Check if it's a canvas/native dependency issue
+    if (error instanceof Error && (
+      error.message.includes('canvas') ||
+      error.message.includes('native') ||
+      error.message.includes('Cannot find module') ||
+      error.message.includes('canvas.node')
+    )) {
       throw new Error(
-        'PDF conversion requires native dependencies. ' +
-        'Please ensure canvas package is properly installed. ' +
-        'For now, please use image files (JPG, PNG) instead of PDFs, or install canvas dependencies.'
+        'PDF conversion requires native canvas dependencies. ' +
+        'Please install canvas system dependencies:\n' +
+        'macOS: brew install pkg-config cairo pango libpng jpeg giflib librsvg\n' +
+        'Then run: npm rebuild canvas\n\n' +
+        'Alternatively, convert your PDF to an image (JPG/PNG) and upload that instead.'
       );
     }
     

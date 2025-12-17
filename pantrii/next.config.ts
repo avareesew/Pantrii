@@ -11,7 +11,10 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
-  serverExternalPackages: ['canvas', 'pdf-img-convert'],
+  serverExternalPackages: ['canvas', 'pdf-img-convert', 'pdfjs-dist'],
+  experimental: {
+    serverComponentsExternalPackages: ['canvas', 'pdfjs-dist'],
+  },
 };
 
 export default nextConfig;

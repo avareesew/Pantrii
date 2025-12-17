@@ -62,6 +62,23 @@ export async function POST(request: NextRequest) {
     const ingredientsArray = Array.isArray(ingredients) ? ingredients : []
     const instructionsArray = Array.isArray(instructions) ? instructions : []
 
+    // Check if recipe with same fileHash already exists for this user
+    if (fileHash) {
+      const existingRecipe = await prisma.recipe.findFirst({
+        where: {
+          fileHash: fileHash,
+          userId: session.user.id,
+        }
+      })
+
+      if (existingRecipe) {
+        return NextResponse.json(
+          { error: "This recipe has already been saved" },
+          { status: 409 } // Conflict status
+        )
+      }
+    }
+
     const recipe = await prisma.recipe.create({
       data: {
         recipe_name,

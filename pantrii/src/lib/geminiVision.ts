@@ -33,19 +33,20 @@ function imageToBase64(buffer: Buffer, mimeType: string): string {
 }
 
 /**
- * Extract recipe from image using Gemini 1.5 Flash
+ * Extract recipe from image or PDF using Gemini 2.5 Flash
+ * Supports: images (PNG, JPEG) and PDFs directly
  */
 export async function extractRecipeFromImage(
-  imageBuffer: Buffer,
+  fileBuffer: Buffer,
   mimeType: string = 'image/png'
 ): Promise<RecipeSchema> {
   if (!process.env.GOOGLE_AI_API_KEY) {
     throw new Error('GOOGLE_AI_API_KEY environment variable is not set');
   }
 
-  const base64Image = imageToBase64(imageBuffer, mimeType);
+  const base64File = fileBuffer.toString('base64');
 
-  const schemaPrompt = `Extract the recipe details from this image. Follow this JSON schema exactly. If a field is missing or cannot be determined, return null for that field.
+  const schemaPrompt = `Extract the recipe details from this ${mimeType.includes('pdf') ? 'PDF document' : 'image'}. Follow this JSON schema exactly. If a field is missing or cannot be determined, return null for that field.
 
 Required JSON Schema:
 {
@@ -105,8 +106,8 @@ CRITICAL INSTRUCTIONS:
                 },
                 {
                   inline_data: {
-                    mime_type: mimeType,
-                    data: base64Image,
+                    mime_type: mimeType, // Can be image/png, image/jpeg, or application/pdf
+                    data: base64File,
                   },
                 },
               ],
