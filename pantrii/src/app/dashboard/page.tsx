@@ -34,6 +34,7 @@ interface Recipe {
   ingredients: Ingredient[]
   instructions: Instruction[]
   nutrition: Nutrition | null
+  image: string | null
   createdAt: string
   updatedAt: string
 }
@@ -162,9 +163,20 @@ export default function DashboardPage() {
                 href={`/recipes/${recipe.id}`}
                 className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow"
               >
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  {recipe.recipe_name}
-                </h3>
+                <div className="flex items-start justify-between gap-4 mb-2">
+                  <h3 className="text-lg font-semibold text-gray-900 flex-1">
+                    {recipe.recipe_name}
+                  </h3>
+                  {recipe.image && (
+                    <div className="flex-shrink-0">
+                      <img
+                        src={recipe.image}
+                        alt={recipe.recipe_name}
+                        className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                      />
+                    </div>
+                  )}
+                </div>
                 <div className="flex gap-4 text-xs text-gray-500">
                   {recipe.prep_time_minutes && (
                     <span>Prep: {recipe.prep_time_minutes} min</span>

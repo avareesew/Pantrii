@@ -26,6 +26,12 @@ interface CachedRecipe {
     fat_g: number | null;
     carbs_g: number | null;
   } | null;
+  nutrition_ai_estimated?: boolean;
+  nutrition_servings_used?: number | null;
+  genreOfFood?: string | null;
+  typeOfDish?: string[] | null;
+  methodOfCooking?: string | null;
+  authorsNotes?: string | null;
 }
 
 /**
@@ -41,6 +47,8 @@ export async function getCachedRecipe(fileHash: string): Promise<CachedRecipe | 
       return null;
     }
 
+    const nutritionData = recipe.nutrition ? JSON.parse(recipe.nutrition) : null;
+    const typeOfDishArray = recipe.typeOfDish ? JSON.parse(recipe.typeOfDish) : null;
     return {
       recipe_name: recipe.recipe_name,
       author: recipe.author,
@@ -51,7 +59,18 @@ export async function getCachedRecipe(fileHash: string): Promise<CachedRecipe | 
       cook_time_minutes: recipe.cook_time_minutes,
       ingredients: JSON.parse(recipe.ingredients),
       instructions: JSON.parse(recipe.instructions),
-      nutrition: recipe.nutrition ? JSON.parse(recipe.nutrition) : null,
+      nutrition: nutritionData ? {
+        calories: nutritionData.calories,
+        protein_g: nutritionData.protein_g,
+        fat_g: nutritionData.fat_g,
+        carbs_g: nutritionData.carbs_g,
+      } : null,
+      nutrition_ai_estimated: nutritionData?._ai_estimated || false,
+      nutrition_servings_used: nutritionData?._servings_used || null,
+      genreOfFood: recipe.genreOfFood || null,
+      typeOfDish: typeOfDishArray || null,
+      methodOfCooking: recipe.methodOfCooking || null,
+      authorsNotes: recipe.authorsNotes || null,
     };
   } catch (error) {
     console.error('Error getting cached recipe:', error);
@@ -80,6 +99,10 @@ export async function saveCachedRecipe(
         ingredients: JSON.stringify(recipe.ingredients),
         instructions: JSON.stringify(recipe.instructions),
         nutrition: recipe.nutrition ? JSON.stringify(recipe.nutrition) : null,
+        genreOfFood: recipe.genreOfFood || null,
+        typeOfDish: recipe.typeOfDish ? JSON.stringify(recipe.typeOfDish) : null,
+        methodOfCooking: recipe.methodOfCooking || null,
+        authorsNotes: recipe.authorsNotes || null,
         fileHash,
         userId,
       },

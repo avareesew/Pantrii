@@ -46,6 +46,10 @@ export async function POST(request: NextRequest) {
     // Save file
     await writeFile(filepath, buffer);
 
+    // Convert file to base64 for storage
+    const base64File = buffer.toString('base64');
+    const base64DataUri = `data:${file.type};base64,${base64File}`;
+
     return NextResponse.json({
       success: true,
       filename,
@@ -53,7 +57,8 @@ export async function POST(request: NextRequest) {
       originalName: file.name,
       size: file.size,
       type: file.type,
-      uploadId: timestamp
+      uploadId: timestamp,
+      base64: base64DataUri, // Include base64 for storage
     });
 
   } catch (error) {
