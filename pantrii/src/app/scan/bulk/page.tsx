@@ -564,9 +564,9 @@ export default function BulkUploadPage() {
             <>
               {/* Show processing status if still processing */}
               {isProcessing && (
-                <div className="mb-6 space-y-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <div className="flex items-center gap-2 text-sm text-blue-600">
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
+                <div className="mb-6 space-y-4 bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-sm text-green-800">
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-green-800 border-t-transparent"></div>
                     Processing {processingProgress.current} of {processingProgress.total} files...
                   </div>
                   <div className="text-sm text-gray-600">
@@ -574,7 +574,7 @@ export default function BulkUploadPage() {
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div 
-                      className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
+                      className="bg-green-800 h-2 rounded-full transition-all duration-300 ease-out"
                       style={{ width: `${(processingProgress.current / processingProgress.total) * 100}%` }}
                     ></div>
                   </div>
@@ -643,7 +643,7 @@ export default function BulkUploadPage() {
                     <div className="mb-6">
                       <button
                         onClick={() => setShowComparison(true)}
-                        className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2"
+                        className="bg-green-800 text-white px-6 py-3 rounded-lg hover:bg-green-900 font-medium flex items-center gap-2"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
@@ -780,6 +780,73 @@ function RecipeEditor({
 }) {
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [typeOfDishSearch, setTypeOfDishSearch] = useState<string>('');
+  
+  // Track which sections are being edited
+  const [editingSections, setEditingSections] = useState({
+    basic: false,
+    ingredients: false,
+    instructions: false,
+    nutrition: false,
+    taxonomy: false,
+  });
+
+  const toggleSectionEdit = (section: keyof typeof editingSections) => {
+    setEditingSections(prev => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
+
+  const cancelSectionEdit = (section: keyof typeof editingSections) => {
+    // Reset form data for this section from recipe data
+    if (section === 'basic') {
+      onUpdate({
+        editForm: {
+          ...recipe.editForm,
+          recipe_name: recipe.recipeData.recipe_name || '',
+          author: recipe.recipeData.author || '',
+          description: recipe.recipeData.description || '',
+          link: recipe.recipeData.link || '',
+          servings: recipe.recipeData.servings?.toString() || '',
+          prep_time_minutes: recipe.recipeData.prep_time_minutes?.toString() || '',
+          cook_time_minutes: recipe.recipeData.cook_time_minutes?.toString() || '',
+        },
+      });
+    } else if (section === 'ingredients') {
+      onUpdate({
+        editForm: {
+          ...recipe.editForm,
+          ingredients: Array.isArray(recipe.recipeData.ingredients) ? recipe.recipeData.ingredients : [],
+        },
+      });
+    } else if (section === 'instructions') {
+      onUpdate({
+        editForm: {
+          ...recipe.editForm,
+          instructions: Array.isArray(recipe.recipeData.instructions) ? recipe.recipeData.instructions : [],
+        },
+      });
+    } else if (section === 'nutrition') {
+      onUpdate({
+        editForm: {
+          ...recipe.editForm,
+          nutrition: recipe.recipeData.nutrition || null,
+        },
+      });
+    } else if (section === 'taxonomy') {
+      onUpdate({
+        genreOfFood: recipe.recipeData.genreOfFood && isValidGenreOfFood(recipe.recipeData.genreOfFood) ? recipe.recipeData.genreOfFood : null,
+        typeOfDish: Array.isArray(recipe.recipeData.typeOfDish) && recipe.recipeData.typeOfDish.length > 0
+          ? validateTypeOfDishArray(recipe.recipeData.typeOfDish)
+          : [],
+        methodOfCooking: recipe.recipeData.methodOfCooking && isValidMethodOfCooking(recipe.recipeData.methodOfCooking) ? recipe.recipeData.methodOfCooking : null,
+      });
+    }
+    setEditingSections(prev => ({
+      ...prev,
+      [section]: false,
+    }));
+  };
 
   const handlePhotoSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -823,8 +890,8 @@ function RecipeEditor({
             file:mr-4 file:py-2 file:px-4
             file:rounded-lg file:border-0
             file:text-sm file:font-semibold
-            file:bg-blue-600 file:text-white
-            hover:file:bg-blue-700
+            file:bg-green-800 file:text-white
+            hover:file:bg-green-900
             disabled:opacity-50"
         />
         {recipe.recipePhoto && (
@@ -846,90 +913,227 @@ function RecipeEditor({
 
       {/* Basic Information */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h3>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Recipe Name *</label>
-            <input
-              type="text"
-              value={recipe.editForm.recipe_name}
-              onChange={(e) => onUpdate({ editForm: { ...recipe.editForm, recipe_name: e.target.value } })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-2xl font-bold"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Author</label>
-            <input
-              type="text"
-              value={recipe.editForm.author}
-              onChange={(e) => onUpdate({ editForm: { ...recipe.editForm, author: e.target.value } })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-            <textarea
-              value={recipe.editForm.description}
-              onChange={(e) => onUpdate({ editForm: { ...recipe.editForm, description: e.target.value } })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-              rows={3}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Source Link</label>
-            <input
-              type="url"
-              value={recipe.editForm.link}
-              onChange={(e) => onUpdate({ editForm: { ...recipe.editForm, link: e.target.value } })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-            />
-          </div>
-          <div className="flex flex-wrap gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Prep Time (min)</label>
-              <input
-                type="number"
-                value={recipe.editForm.prep_time_minutes}
-                onChange={(e) => onUpdate({ editForm: { ...recipe.editForm, prep_time_minutes: e.target.value } })}
-                className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">Basic Information</h3>
+          {!editingSections.basic ? (
+            <button
+              type="button"
+              onClick={() => toggleSectionEdit('basic')}
+              className="text-sm bg-gray-100 text-gray-700 px-3 py-1 rounded-lg hover:bg-gray-200"
+            >
+              Edit
+            </button>
+          ) : (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => toggleSectionEdit('basic')}
+                className="text-sm bg-green-600 text-white px-3 py-1 rounded-lg hover:bg-green-700"
+              >
+                Done
+              </button>
+              <button
+                type="button"
+                onClick={() => cancelSectionEdit('basic')}
+                className="text-sm bg-gray-200 text-gray-700 px-3 py-1 rounded-lg hover:bg-gray-300"
+              >
+                Cancel
+              </button>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Cook Time (min)</label>
-              <input
-                type="number"
-                value={recipe.editForm.cook_time_minutes}
-                onChange={(e) => onUpdate({ editForm: { ...recipe.editForm, cook_time_minutes: e.target.value } })}
-                className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Servings</label>
-              <input
-                type="number"
-                value={recipe.editForm.servings}
-                onChange={(e) => onUpdate({ editForm: { ...recipe.editForm, servings: e.target.value } })}
-                className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-            </div>
-          </div>
+          )}
         </div>
+        
+        {!editingSections.basic ? (
+          // Read-only view
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">{recipe.editForm.recipe_name || 'Untitled Recipe'}</h2>
+            </div>
+            
+            {recipe.editForm.author ? (
+              <div className="text-sm text-gray-600">
+                <span className="font-medium">Author:</span> {recipe.editForm.author}
+              </div>
+            ) : (
+              <div className="text-sm text-amber-600 flex items-center gap-1">
+                <span>⚠️</span>
+                <span className="italic">Author: Missing</span>
+              </div>
+            )}
+
+            {recipe.editForm.description ? (
+              <div className="text-sm text-gray-700">
+                <span className="font-medium">Description:</span> {recipe.editForm.description}
+              </div>
+            ) : (
+              <div className="text-sm text-amber-600 flex items-center gap-1">
+                <span>⚠️</span>
+                <span className="italic">Description: Missing</span>
+              </div>
+            )}
+
+            {recipe.recipeData.authorsNotes && (
+              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                <div className="text-sm font-medium text-gray-900 mb-2">Author's Notes</div>
+                <p className="text-sm text-gray-700 whitespace-pre-wrap">{recipe.recipeData.authorsNotes}</p>
+              </div>
+            )}
+
+            {recipe.editForm.link ? (
+              <div className="text-sm text-gray-600">
+                <span className="font-medium">Source:</span>{' '}
+                <a href={recipe.editForm.link} target="_blank" rel="noopener noreferrer" className="text-green-800 hover:text-green-900 hover:underline">
+                  {recipe.editForm.link}
+                </a>
+              </div>
+            ) : (
+              <div className="text-sm text-amber-600 flex items-center gap-1">
+                <span>⚠️</span>
+                <span className="italic">Source Link: Missing</span>
+              </div>
+            )}
+            
+            <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+              {recipe.editForm.prep_time_minutes && <span>Prep: {recipe.editForm.prep_time_minutes} min</span>}
+              {recipe.editForm.cook_time_minutes && <span>Cook: {recipe.editForm.cook_time_minutes} min</span>}
+              {recipe.editForm.servings && <span>Serves: {recipe.editForm.servings}</span>}
+            </div>
+          </div>
+        ) : (
+          // Editable view
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Recipe Name *</label>
+              <input
+                type="text"
+                value={recipe.editForm.recipe_name}
+                onChange={(e) => onUpdate({ editForm: { ...recipe.editForm, recipe_name: e.target.value } })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-2xl font-bold"
+                placeholder="Recipe Name"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Author</label>
+              <input
+                type="text"
+                value={recipe.editForm.author}
+                onChange={(e) => onUpdate({ editForm: { ...recipe.editForm, author: e.target.value } })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                placeholder="Author name"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+              <textarea
+                value={recipe.editForm.description}
+                onChange={(e) => onUpdate({ editForm: { ...recipe.editForm, description: e.target.value } })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                placeholder="Recipe description"
+                rows={3}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Source Link</label>
+              <input
+                type="url"
+                value={recipe.editForm.link}
+                onChange={(e) => onUpdate({ editForm: { ...recipe.editForm, link: e.target.value } })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                placeholder="https://..."
+              />
+            </div>
+            <div className="flex flex-wrap gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Prep Time (min)</label>
+                <input
+                  type="number"
+                  value={recipe.editForm.prep_time_minutes}
+                  onChange={(e) => onUpdate({ editForm: { ...recipe.editForm, prep_time_minutes: e.target.value } })}
+                  className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Cook Time (min)</label>
+                <input
+                  type="number"
+                  value={recipe.editForm.cook_time_minutes}
+                  onChange={(e) => onUpdate({ editForm: { ...recipe.editForm, cook_time_minutes: e.target.value } })}
+                  className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Servings</label>
+                <input
+                  type="number"
+                  value={recipe.editForm.servings}
+                  onChange={(e) => onUpdate({ editForm: { ...recipe.editForm, servings: e.target.value } })}
+                  className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Ingredients */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">Ingredients</h3>
-          <button
-            type="button"
-            onClick={onAddIngredient}
-            className="text-sm bg-green-600 text-white px-3 py-1 rounded-lg hover:bg-green-700"
-          >
-            + Add Ingredient
-          </button>
+          {!editingSections.ingredients ? (
+            <button
+              type="button"
+              onClick={() => toggleSectionEdit('ingredients')}
+              className="text-sm bg-gray-100 text-gray-700 px-3 py-1 rounded-lg hover:bg-gray-200"
+            >
+              Edit
+            </button>
+          ) : (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={onAddIngredient}
+                className="text-sm bg-green-600 text-white px-3 py-1 rounded-lg hover:bg-green-700"
+              >
+                + Add Ingredient
+              </button>
+              <button
+                type="button"
+                onClick={() => toggleSectionEdit('ingredients')}
+                className="text-sm bg-green-600 text-white px-3 py-1 rounded-lg hover:bg-green-700"
+              >
+                Done
+              </button>
+              <button
+                type="button"
+                onClick={() => cancelSectionEdit('ingredients')}
+                className="text-sm bg-gray-200 text-gray-700 px-3 py-1 rounded-lg hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
         </div>
-        <div className="space-y-3">
-          {recipe.editForm.ingredients.map((ingredient, index) => (
+        
+        {!editingSections.ingredients ? (
+          // Read-only view
+          <ul className="space-y-2">
+            {recipe.editForm.ingredients.length > 0 ? (
+              recipe.editForm.ingredients.map((ingredient, index) => (
+                <li key={index} className="text-sm text-gray-700">
+                  {ingredient.quantity && `${ingredient.quantity} `}
+                  {ingredient.unit && `${ingredient.unit} `}
+                  <span className="font-medium">{ingredient.item}</span>
+                  {ingredient.notes && ` (${ingredient.notes})`}
+                </li>
+              ))
+            ) : (
+              <li className="text-sm text-gray-500 italic">No ingredients</li>
+            )}
+          </ul>
+        ) : (
+          // Editable view
+          <div className="space-y-3">
+            {recipe.editForm.ingredients.map((ingredient, index) => (
             <div key={index} className="flex gap-2 items-start">
               <div className="flex-1 grid grid-cols-4 gap-2">
                 <input
@@ -971,25 +1175,68 @@ function RecipeEditor({
             </div>
           ))}
           {recipe.editForm.ingredients.length === 0 && (
-            <p className="text-sm text-gray-500 italic">No ingredients added yet.</p>
+            <p className="text-sm text-gray-500 italic">No ingredients added yet. Click "Add Ingredient" to get started.</p>
           )}
         </div>
+        )}
       </div>
 
       {/* Instructions */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">Instructions</h3>
-          <button
-            type="button"
-            onClick={onAddInstruction}
-            className="text-sm bg-green-600 text-white px-3 py-1 rounded-lg hover:bg-green-700"
-          >
-            + Add Step
-          </button>
+          {!editingSections.instructions ? (
+            <button
+              type="button"
+              onClick={() => toggleSectionEdit('instructions')}
+              className="text-sm bg-gray-100 text-gray-700 px-3 py-1 rounded-lg hover:bg-gray-200"
+            >
+              Edit
+            </button>
+          ) : (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={onAddInstruction}
+                className="text-sm bg-green-600 text-white px-3 py-1 rounded-lg hover:bg-green-700"
+              >
+                + Add Step
+              </button>
+              <button
+                type="button"
+                onClick={() => toggleSectionEdit('instructions')}
+                className="text-sm bg-green-600 text-white px-3 py-1 rounded-lg hover:bg-green-700"
+              >
+                Done
+              </button>
+              <button
+                type="button"
+                onClick={() => cancelSectionEdit('instructions')}
+                className="text-sm bg-gray-200 text-gray-700 px-3 py-1 rounded-lg hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
         </div>
-        <div className="space-y-3">
-          {recipe.editForm.instructions.map((instruction, index) => (
+        
+        {!editingSections.instructions ? (
+          // Read-only view
+          <ol className="space-y-3">
+            {recipe.editForm.instructions.length > 0 ? (
+              recipe.editForm.instructions.map((instruction, index) => (
+                <li key={index} className="text-sm text-gray-700">
+                  <span className="font-medium">{instruction.step_number}.</span> {instruction.text}
+                </li>
+              ))
+            ) : (
+              <li className="text-sm text-gray-500 italic">No instructions</li>
+            )}
+          </ol>
+        ) : (
+          // Editable view
+          <div className="space-y-3">
+            {recipe.editForm.instructions.map((instruction, index) => (
             <div key={index} className="flex gap-3">
               <span className="flex-shrink-0 w-6 h-6 bg-green-600 text-white text-sm rounded-full flex items-center justify-center font-semibold">
                 {instruction.step_number || index + 1}
@@ -1013,13 +1260,87 @@ function RecipeEditor({
             <p className="text-sm text-gray-500 italic">No instructions added yet.</p>
           )}
         </div>
+        )}
       </div>
 
       {/* Nutrition */}
       {recipe.editForm.nutrition && (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Nutrition</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Nutrition</h3>
+            {!editingSections.nutrition ? (
+              <button
+                type="button"
+                onClick={() => toggleSectionEdit('nutrition')}
+                className="text-sm bg-gray-100 text-gray-700 px-3 py-1 rounded-lg hover:bg-gray-200"
+              >
+                Edit
+              </button>
+            ) : (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => toggleSectionEdit('nutrition')}
+                  className="text-sm bg-green-600 text-white px-3 py-1 rounded-lg hover:bg-green-700"
+                >
+                  Done
+                </button>
+                <button
+                  type="button"
+                  onClick={() => cancelSectionEdit('nutrition')}
+                  className="text-sm bg-gray-200 text-gray-700 px-3 py-1 rounded-lg hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
+          
+          {recipe.recipeData.nutrition_ai_estimated && recipe.recipeData.nutrition_servings_used && (
+            <p className="text-xs text-gray-500 mb-3">
+              Values are per serving. Calculated using {recipe.recipeData.nutrition_servings_used} {recipe.recipeData.nutrition_servings_used === 1 ? 'serving' : 'servings'}.
+              {recipe.editForm.servings && String(recipe.editForm.servings).includes('-') && (
+                <span> (Recipe indicates {recipe.editForm.servings} servings)</span>
+              )}
+            </p>
+          )}
+          {!recipe.recipeData.nutrition_ai_estimated && recipe.editForm.servings && (
+            <p className="text-xs text-gray-500 mb-3">
+              Values are per serving
+            </p>
+          )}
+          
+          {!editingSections.nutrition ? (
+            // Read-only view
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              {recipe.editForm.nutrition.calories !== null && (
+                <div>
+                  <span className="text-gray-600">Calories:</span>
+                  <span className="ml-2 font-medium">{recipe.editForm.nutrition.calories}</span>
+                </div>
+              )}
+              {recipe.editForm.nutrition.protein_g !== null && (
+                <div>
+                  <span className="text-gray-600">Protein:</span>
+                  <span className="ml-2 font-medium">{recipe.editForm.nutrition.protein_g}g</span>
+                </div>
+              )}
+              {recipe.editForm.nutrition.fat_g !== null && (
+                <div>
+                  <span className="text-gray-600">Fat:</span>
+                  <span className="ml-2 font-medium">{recipe.editForm.nutrition.fat_g}g</span>
+                </div>
+              )}
+              {recipe.editForm.nutrition.carbs_g !== null && (
+                <div>
+                  <span className="text-gray-600">Carbs:</span>
+                  <span className="ml-2 font-medium">{recipe.editForm.nutrition.carbs_g}g</span>
+                </div>
+              )}
+            </div>
+          ) : (
+            // Editable view
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm text-gray-600 mb-1">Calories</label>
               <input
@@ -1089,102 +1410,183 @@ function RecipeEditor({
               />
             </div>
           </div>
+          )}
         </div>
       )}
 
       {/* Taxonomy */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
-        <h3 className="text-lg font-semibold text-gray-900">Taxonomy & Details</h3>
-        
-        <div>
-          <h4 className="text-sm font-medium text-gray-700 mb-2">Genre of Food</h4>
-          <select
-            value={recipe.genreOfFood || ''}
-            onChange={(e) => onUpdate({ genreOfFood: e.target.value || null })}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-          >
-            <option value="">Select a genre...</option>
-            {GENRE_OF_FOOD_OPTIONS.map((genre) => (
-              <option key={genre} value={genre}>{genre}</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <h4 className="text-sm font-medium text-gray-700 mb-2">
-            Type of Dish ({recipe.typeOfDish.length}/3)
-          </h4>
-          <input
-            type="text"
-            value={typeOfDishSearch}
-            onChange={(e) => setTypeOfDishSearch(e.target.value)}
-            placeholder="Search for a dish type..."
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 mb-3"
-          />
-          {recipe.typeOfDish.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-3">
-              {recipe.typeOfDish.map((selected) => (
-                <span
-                  key={selected}
-                  className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm"
-                >
-                  {selected}
-                  <button
-                    type="button"
-                    onClick={() => onUpdate({ typeOfDish: recipe.typeOfDish.filter((t) => t !== selected) })}
-                    className="text-green-600 hover:text-green-800 font-bold"
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-gray-900">Recipe Details</h3>
+          {!editingSections.taxonomy ? (
+            <button
+              type="button"
+              onClick={() => toggleSectionEdit('taxonomy')}
+              className="text-sm bg-gray-100 text-gray-700 px-3 py-1 rounded-lg hover:bg-gray-200"
+            >
+              Edit
+            </button>
+          ) : (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => toggleSectionEdit('taxonomy')}
+                className="text-sm bg-green-600 text-white px-3 py-1 rounded-lg hover:bg-green-700"
+              >
+                Done
+              </button>
+              <button
+                type="button"
+                onClick={() => cancelSectionEdit('taxonomy')}
+                className="text-sm bg-gray-200 text-gray-700 px-3 py-1 rounded-lg hover:bg-gray-300"
+              >
+                Cancel
+              </button>
             </div>
           )}
-          <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-lg p-3">
-            {TYPE_OF_DISH_OPTIONS
-              .filter((dishType) => 
-                dishType.toLowerCase().includes(typeOfDishSearch.toLowerCase()) &&
-                !recipe.typeOfDish.includes(dishType)
-              )
-              .map((dishType) => {
-                const isDisabled = recipe.typeOfDish.length >= 3;
-                return (
-                  <button
-                    key={dishType}
-                    type="button"
-                    disabled={isDisabled}
-                    onClick={() => {
-                      if (recipe.typeOfDish.length < 3) {
-                        onUpdate({ typeOfDish: [...recipe.typeOfDish, dishType] });
-                        setTypeOfDishSearch('');
-                      }
-                    }}
-                    className={`w-full text-left px-3 py-2 rounded mb-1 transition-colors ${
-                      isDisabled
-                        ? 'bg-gray-50 text-gray-400 cursor-not-allowed'
-                        : 'bg-gray-50 text-gray-700 hover:bg-green-50 hover:text-green-800'
-                    }`}
-                  >
-                    {dishType}
-                  </button>
-                );
-              })}
-          </div>
         </div>
 
-        <div>
-          <h4 className="text-sm font-medium text-gray-700 mb-2">Method of Cooking</h4>
-          <select
-            value={recipe.methodOfCooking || ''}
-            onChange={(e) => onUpdate({ methodOfCooking: e.target.value || null })}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-          >
-            <option value="">Select a cooking method...</option>
-            {METHOD_OF_COOKING_OPTIONS.map((method) => (
-              <option key={method} value={method}>{method}</option>
-            ))}
-          </select>
-        </div>
+        {!editingSections.taxonomy ? (
+          // Read-only view
+          <div className="space-y-4">
+            {/* Genre of Food */}
+            <div>
+              <span className="text-sm font-medium text-gray-700">Genre of Food:</span>
+              {recipe.genreOfFood ? (
+                <div className="text-sm text-gray-600 mt-1">{recipe.genreOfFood}</div>
+              ) : (
+                <div className="text-sm text-amber-600 mt-1 flex items-center gap-1">
+                  <span>⚠️</span>
+                  <span className="italic">Missing</span>
+                </div>
+              )}
+            </div>
+
+            {/* Type of Dish */}
+            <div>
+              <span className="text-sm font-medium text-gray-700">Type of Dish:</span>
+              {recipe.typeOfDish.length > 0 ? (
+                <div className="text-sm text-gray-600 mt-1">{recipe.typeOfDish.join(', ')}</div>
+              ) : (
+                <div className="text-sm text-amber-600 mt-1 flex items-center gap-1">
+                  <span>⚠️</span>
+                  <span className="italic">Missing</span>
+                </div>
+              )}
+            </div>
+
+            {/* Method of Cooking */}
+            <div>
+              <span className="text-sm font-medium text-gray-700">Method of Cooking:</span>
+              {recipe.methodOfCooking ? (
+                <div className="text-sm text-gray-600 mt-1">{recipe.methodOfCooking}</div>
+              ) : (
+                <div className="text-sm text-amber-600 mt-1 flex items-center gap-1">
+                  <span>⚠️</span>
+                  <span className="italic">Missing</span>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          // Editable view
+          <div className="space-y-6">
+            {/* Genre of Food - Single Select */}
+            <div>
+              <h4 className="text-sm font-medium text-gray-700 mb-2">
+                Genre of Food <span className="text-xs font-normal text-gray-500">(Select one)</span>
+              </h4>
+              <select
+                value={recipe.genreOfFood || ''}
+                onChange={(e) => onUpdate({ genreOfFood: e.target.value || null })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                <option value="">Select a genre...</option>
+                {GENRE_OF_FOOD_OPTIONS.map((genre) => (
+                  <option key={genre} value={genre}>{genre}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Type of Dish - Multi Select (1-3) with Search */}
+            <div>
+              <h4 className="text-sm font-medium text-gray-700 mb-2">
+                Type of Dish ({recipe.typeOfDish.length}/3) <span className="text-xs font-normal text-gray-500">(Select 1-3)</span>
+              </h4>
+              <input
+                type="text"
+                value={typeOfDishSearch}
+                onChange={(e) => setTypeOfDishSearch(e.target.value)}
+                placeholder="Search for a dish type..."
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 mb-3"
+              />
+              {recipe.typeOfDish.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {recipe.typeOfDish.map((selected) => (
+                    <span
+                      key={selected}
+                      className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm"
+                    >
+                      {selected}
+                      <button
+                        type="button"
+                        onClick={() => onUpdate({ typeOfDish: recipe.typeOfDish.filter((t) => t !== selected) })}
+                        className="text-green-600 hover:text-green-800 font-bold"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                {TYPE_OF_DISH_OPTIONS
+                  .filter((dishType) => 
+                    dishType.toLowerCase().includes(typeOfDishSearch.toLowerCase()) &&
+                    !recipe.typeOfDish.includes(dishType)
+                  )
+                  .map((dishType) => {
+                    const isDisabled = recipe.typeOfDish.length >= 3;
+                    return (
+                      <button
+                        key={dishType}
+                        type="button"
+                        disabled={isDisabled}
+                        onClick={() => {
+                          if (recipe.typeOfDish.length < 3) {
+                            onUpdate({ typeOfDish: [...recipe.typeOfDish, dishType] });
+                            setTypeOfDishSearch('');
+                          }
+                        }}
+                        className={`w-full text-left px-3 py-2 rounded mb-1 transition-colors ${
+                          isDisabled
+                            ? 'bg-gray-50 text-gray-400 cursor-not-allowed'
+                            : 'bg-gray-50 text-gray-700 hover:bg-green-50 hover:text-green-800'
+                        }`}
+                      >
+                        {dishType}
+                      </button>
+                    );
+                  })}
+              </div>
+            </div>
+
+            {/* Method of Cooking - Single Select */}
+            <div>
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Method of Cooking</h4>
+              <select
+                value={recipe.methodOfCooking || ''}
+                onChange={(e) => onUpdate({ methodOfCooking: e.target.value || null })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                <option value="">Select a cooking method...</option>
+                {METHOD_OF_COOKING_OPTIONS.map((method) => (
+                  <option key={method} value={method}>{method}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Made Before */}

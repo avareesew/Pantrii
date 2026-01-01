@@ -366,8 +366,8 @@ export default function RecipePage() {
                         file:mr-2 file:py-1 file:px-2
                         file:rounded file:border-0
                         file:text-xs file:font-semibold
-                        file:bg-blue-600 file:text-white
-                        hover:file:bg-blue-700"
+                        file:bg-green-800 file:text-white
+                        hover:file:bg-green-900"
                     />
                     {recipePhoto && (
                       <button
@@ -400,28 +400,12 @@ export default function RecipePage() {
                     file:mr-2 file:py-1 file:px-2
                     file:rounded file:border-0
                     file:text-xs file:font-semibold
-                    file:bg-blue-600 file:text-white
-                    hover:file:bg-blue-700"
+                    file:bg-green-800 file:text-white
+                    hover:file:bg-green-900"
                 />
               </div>
             )}
             
-            {/* Original Document Button */}
-            {recipe.originalFile && (
-              <div className="mt-6">
-                <button
-                  onClick={() => setShowOriginalFile(true)}
-                  className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                  View Original Document
-                </button>
-              </div>
-            )}
-
             {/* Original Document Modal */}
             {showOriginalFile && recipe.originalFile && (
               <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onClick={() => setShowOriginalFile(false)}>
@@ -459,13 +443,13 @@ export default function RecipePage() {
               </div>
             )}
             
-            <div className="flex gap-2 flex-shrink-0">
+            <div className="flex gap-2 flex-shrink-0 flex-wrap">
               {editing ? (
                 <>
                   <button
                     onClick={handleSave}
                     disabled={isSaving}
-                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50"
+                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 text-sm font-medium"
                   >
                     {isSaving ? 'Saving...' : 'Save'}
                   </button>
@@ -494,22 +478,34 @@ export default function RecipePage() {
                   userNotes: recipe.userNotes || '',
                       });
                     }}
-                    className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300"
+                    className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 text-sm font-medium"
                   >
                     Cancel
                   </button>
                 </>
               ) : (
                 <>
+                  {recipe.originalFile && (
+                    <button
+                      onClick={() => setShowOriginalFile(true)}
+                      className="bg-green-800 text-white px-4 py-2 rounded-lg hover:bg-green-900 text-sm font-medium flex items-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                      View Original
+                    </button>
+                  )}
                   <button
                     onClick={() => setEditing(true)}
-                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm font-medium"
                   >
                     Edit
                   </button>
                   <button
                     onClick={handleDelete}
-                    className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+                    className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 text-sm font-medium"
                   >
                     Delete
                   </button>
@@ -583,7 +579,7 @@ export default function RecipePage() {
               {recipe.link ? (
                 <div className="text-sm text-gray-600">
                   <span className="font-medium">Source:</span>{' '}
-                  <a href={recipe.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                  <a href={recipe.link} target="_blank" rel="noopener noreferrer" className="text-green-800 hover:text-green-900 hover:underline">
                     {recipe.link}
                   </a>
                 </div>

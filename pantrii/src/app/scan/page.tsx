@@ -244,6 +244,18 @@ export default function ScanPage() {
       // Complete progress
       setUploadProgress(100);
       
+      // Update original file from scan response (important for cached recipes)
+      if (scanData.originalFile) {
+        setOriginalFile(scanData.originalFile);
+        setOriginalFileName(scanData.originalFileName || uploadData.originalName || uploadData.filename);
+        setOriginalFileType(scanData.originalFileType || uploadData.type || '');
+      } else if (uploadData.base64) {
+        // Fallback to upload data if scan doesn't provide it
+        setOriginalFile(uploadData.base64);
+        setOriginalFileName(uploadData.originalName || uploadData.filename);
+        setOriginalFileType(uploadData.type || '');
+      }
+      
       // Initialize taxonomy fields and editable form from scan result if available
       if (scanData.recipeData) {
         // Initialize editable form
@@ -598,18 +610,12 @@ export default function ScanPage() {
               />
             </div>
 
-            <div className="text-xs text-gray-500">
-              Supported formats: JPEG, PNG, PDF (max 10MB)
-            </div>
-
-            <div className="pt-4 border-t border-gray-200">
-              <Link
-                href="/scan/bulk"
-                className="inline-flex items-center text-sm text-blue-600 hover:text-blue-700 font-medium"
-              >
-                Want to upload multiple recipes at once? Click here! →
-              </Link>
-            </div>
+            <Link
+              href="/scan/bulk"
+              className="inline-flex items-center text-sm text-green-800 hover:text-green-900 font-medium"
+            >
+              Want to upload multiple recipes at once? Click here! →
+            </Link>
 
             {(isUploading || isScanning) && (
               <div className="space-y-4">
@@ -649,7 +655,7 @@ export default function ScanPage() {
                   <div className="mb-6">
                     <button
                       onClick={() => setShowComparison(true)}
-                      className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2"
+                      className="bg-green-800 text-white px-6 py-3 rounded-lg hover:bg-green-900 font-medium flex items-center gap-2"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
@@ -718,8 +724,8 @@ export default function ScanPage() {
                       file:mr-4 file:py-2 file:px-4
                       file:rounded-lg file:border-0
                       file:text-sm file:font-semibold
-                      file:bg-blue-600 file:text-white
-                      hover:file:bg-blue-700
+                      file:bg-green-800 file:text-white
+                      hover:file:bg-green-900
                       disabled:opacity-50"
                   />
                   <div className="text-xs text-gray-500 mt-1">
@@ -820,7 +826,7 @@ export default function ScanPage() {
                           {editForm.link ? (
                             <div className="text-sm text-gray-600">
                               <span className="font-medium">Source:</span>{' '}
-                              <a href={editForm.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                              <a href={editForm.link} target="_blank" rel="noopener noreferrer" className="text-green-800 hover:text-green-900 hover:underline">
                                 {editForm.link}
                               </a>
                             </div>

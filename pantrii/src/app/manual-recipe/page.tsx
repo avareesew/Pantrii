@@ -257,8 +257,8 @@ export default function ManualRecipePage() {
                   file:mr-4 file:py-2 file:px-4
                   file:rounded-lg file:border-0
                   file:text-sm file:font-semibold
-                  file:bg-blue-600 file:text-white
-                  hover:file:bg-blue-700
+                  file:bg-green-800 file:text-white
+                  hover:file:bg-green-900
                   disabled:opacity-50"
               />
               <div className="text-xs text-gray-500 mt-1">
