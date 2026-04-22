@@ -57,14 +57,40 @@ export async function POST(request: NextRequest) {
         select: { originalFile: true, originalFileName: true, originalFileType: true },
       });
       
+      // If originalFile is not in database, read it from disk and convert to base64
+      let originalFile = cachedRecipeWithFile?.originalFile || null;
+      let originalFileType = cachedRecipeWithFile?.originalFileType || null;
+      
+      if (!originalFile && existsSync(filepath)) {
+        const fileBuffer = await readFile(filepath);
+        const isPdf = filename.toLowerCase().endsWith('.pdf');
+        
+        // Determine MIME type
+        let mimeType = 'image/png';
+        if (isPdf) {
+          mimeType = 'application/pdf';
+        } else {
+          const lowerFilename = filename.toLowerCase();
+          if (lowerFilename.endsWith('.jpg') || lowerFilename.endsWith('.jpeg')) {
+            mimeType = 'image/jpeg';
+          } else if (lowerFilename.endsWith('.png')) {
+            mimeType = 'image/png';
+          }
+        }
+        
+        const base64File = fileBuffer.toString('base64');
+        originalFile = `data:${mimeType};base64,${base64File}`;
+        originalFileType = mimeType;
+      }
+      
       return NextResponse.json({
         success: true,
         recipeData: cachedRecipe,
         image: cachedRecipeWithImage?.image || null,
         filename,
-        originalFile: cachedRecipeWithFile?.originalFile || null,
+        originalFile: originalFile,
         originalFileName: cachedRecipeWithFile?.originalFileName || filename,
-        originalFileType: cachedRecipeWithFile?.originalFileType || null,
+        originalFileType: originalFileType,
         processedAt: new Date().toISOString(),
         cached: true,
         fileHash,

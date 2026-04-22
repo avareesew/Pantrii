@@ -11,10 +11,8 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
-  serverExternalPackages: ['canvas', 'pdf-img-convert', 'pdfjs-dist'],
-  experimental: {
-    serverComponentsExternalPackages: ['canvas', 'pdfjs-dist'],
-  },
+  // For Next 15+, use only serverExternalPackages (experimental.serverComponentsExternalPackages is deprecated)
+  serverExternalPackages: ["canvas", "pdf-img-convert", "pdfjs-dist"],
 };
 
 export default nextConfig;

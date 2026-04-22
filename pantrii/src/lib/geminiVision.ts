@@ -531,13 +531,18 @@ ${ingredientsList}
 
 ${servingNote}
 
+CALCULATION METHOD - YOU MUST FOLLOW THIS EXACTLY:
+1. First, calculate the TOTAL nutritional values for the ENTIRE recipe by summing up all ingredients
+2. Then, divide the total values by the number of servings (${servingsNumber}) to get PER-SERVING values
+3. For example: If total calories = 2000 and servings = 4, then per-serving calories = 2000 ÷ 4 = 500
+
 Return ONLY a JSON object with this exact structure (include ALL fields listed):
 ${jsonStructureStr}
 
 CRITICAL REQUIREMENTS - YOU MUST FOLLOW THESE EXACTLY:
 1. You MUST return ALL ${missingFields.length} field(s) in the JSON response: ${missingFields.join(', ')}
 2. Do NOT omit any fields - every field listed above must have a numeric value
-3. Provide estimates PER SERVING (not for the entire recipe)
+3. Calculate TOTAL nutrition first, then divide by ${servingsNumber} servings to get PER-SERVING values
 4. Use realistic values based on standard nutritional databases
 5. Round to whole numbers (integers only, no decimals)
 6. Return ONLY valid JSON - no markdown, no code blocks, no explanations
@@ -546,7 +551,7 @@ CRITICAL REQUIREMENTS - YOU MUST FOLLOW THESE EXACTLY:
 Example format for ${missingFields.length} field(s):
 ${jsonStructureStr}
 
-Remember: ALL fields must be included with numeric values.`;
+Remember: ALL fields must be included with numeric values, and they must be PER SERVING (total ÷ ${servingsNumber}).`;
 
   try {
     // Try gemini-3-flash-preview first (best for nutrition estimation on free tier), then fallback to gemini-2.5-flash

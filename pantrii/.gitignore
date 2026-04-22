@@ -40,6 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# local dev database
+/prisma/dev.db
+
 # uploads
 /uploads
 

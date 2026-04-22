@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { GenreOfFood, TypeOfDish, MethodOfCooking, GENRE_OF_FOOD_OPTIONS, TYPE_OF_DISH_OPTIONS, METHOD_OF_COOKING_OPTIONS, isValidGenreOfFood, validateTypeOfDishArray, isValidMethodOfCooking } from '@/lib/recipeTaxonomy';
@@ -78,8 +78,45 @@ export default function ScanPage() {
   const [originalFileName, setOriginalFileName] = useState<string>('');
   const [originalFileType, setOriginalFileType] = useState<string>('');
   const [showComparison, setShowComparison] = useState<boolean>(false);
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
+  const pdfBlobUrlRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
+
+  // Convert PDF data URI to blob URL so iframe can display it (browsers often block data: PDFs in iframes)
+  useEffect(() => {
+    if (pdfBlobUrlRef.current) {
+      URL.revokeObjectURL(pdfBlobUrlRef.current);
+      pdfBlobUrlRef.current = null;
+    }
+    if (!originalFile || !originalFileType?.includes('pdf')) {
+      setPdfPreviewUrl(null);
+      return;
+    }
+    const match = originalFile.match(/^data:([^;]+);base64,(.+)$/);
+    if (!match) {
+      setPdfPreviewUrl(originalFile);
+      return;
+    }
+    try {
+      const base64 = match[2];
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      pdfBlobUrlRef.current = url;
+      setPdfPreviewUrl(url);
+      return () => {
+        if (pdfBlobUrlRef.current) {
+          URL.revokeObjectURL(pdfBlobUrlRef.current);
+          pdfBlobUrlRef.current = null;
+        }
+      };
+    } catch (e) {
+      setPdfPreviewUrl(originalFile);
+    }
+  }, [originalFile, originalFileType]);
   
   // Editable form state
   const [editForm, setEditForm] = useState({
@@ -186,15 +223,11 @@ export default function ScanPage() {
       setIsScanning(true);
       setUploadProgress(30);
 
-      // Simulate scanning progress (30-95%)
-      // AI processing - faster progress to match actual processing time
+      // Simulate scanning progress (30–75%) then hold; real work is Gemini API (often 30–90s for PDFs)
       const scanProgressInterval = setInterval(() => {
         setUploadProgress((prev) => {
-          if (prev < 95) {
-            // Much faster increment - about 1.2% per update, updates every 200ms
-            // This means it takes about 11 seconds to go from 30% to 95%
-            // which better matches typical AI processing times
-            return Math.min(prev + 1.2, 95);
+          if (prev < 75) {
+            return Math.min(prev + 1.5, 75);
           }
           return prev;
         });
@@ -246,14 +279,18 @@ export default function ScanPage() {
       
       // Update original file from scan response (important for cached recipes)
       if (scanData.originalFile) {
+        console.log('Setting originalFile from scan response');
         setOriginalFile(scanData.originalFile);
         setOriginalFileName(scanData.originalFileName || uploadData.originalName || uploadData.filename);
         setOriginalFileType(scanData.originalFileType || uploadData.type || '');
       } else if (uploadData.base64) {
         // Fallback to upload data if scan doesn't provide it
+        console.log('Using fallback originalFile from upload data');
         setOriginalFile(uploadData.base64);
         setOriginalFileName(uploadData.originalName || uploadData.filename);
         setOriginalFileType(uploadData.type || '');
+      } else {
+        console.warn('No originalFile available from scan or upload');
       }
       
       // Initialize taxonomy fields and editable form from scan result if available
@@ -635,9 +672,12 @@ export default function ScanPage() {
                 </div>
                 
                 {isScanning && (
-                  <div className="text-xs text-gray-500">
-                    Converting PDF to images and extracting recipe using AI...
-                </div>
+                  <div className="text-xs text-gray-500 space-y-1">
+                    <p>Extracting recipe with AI… (PDFs can take 30–90 seconds)</p>
+                    {uploadProgress >= 70 && (
+                      <p className="text-green-600 font-medium">Waiting for AI — this usually takes 30–90 seconds for PDFs.</p>
+                    )}
+                  </div>
                 )}
               </div>
             )}
@@ -660,7 +700,7 @@ export default function ScanPage() {
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
                       </svg>
-                      Want to compare the recipe to your upload?
+                      View Original Document
                     </button>
                   </div>
                 )}
@@ -685,11 +725,17 @@ export default function ScanPage() {
                         </div>
                         <div className="space-y-4">
                           {originalFileType?.includes('pdf') ? (
-                            <iframe
-                              src={originalFile}
-                              className="w-full h-[calc(100vh-200px)] border border-gray-300 rounded-lg"
-                              title="Original PDF"
-                            />
+                            (pdfPreviewUrl ? (
+                              <iframe
+                                src={pdfPreviewUrl}
+                                className="w-full h-[calc(100vh-200px)] border border-gray-300 rounded-lg"
+                                title="Original PDF"
+                              />
+                            ) : (
+                              <div className="w-full h-[calc(100vh-200px)] border border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 text-gray-500">
+                                Loading PDF…
+                              </div>
+                            ))
                           ) : (
                             <img
                               src={originalFile}

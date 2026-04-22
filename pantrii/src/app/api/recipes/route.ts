@@ -60,6 +60,18 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = (session.user as any).id;
+    
+    // Verify user exists in database
+    const userExists = await prisma.user.findUnique({
+      where: { id: userId }
+    })
+    
+    if (!userExists) {
+      console.error(`User ${userId} from session does not exist in database`)
+      return NextResponse.json({ 
+        error: "User not found. Please log out and log back in." 
+      }, { status: 401 })
+    }
 
     const { 
       recipe_name,
